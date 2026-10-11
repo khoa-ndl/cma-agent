@@ -77,11 +77,12 @@ Each step: write tests first and confirm they fail, implement until they pass, r
 - **Found in review:** `client.ts`'s `Database` type was tied to `NeonHttpDatabase` specifically, so a PGlite test instance couldn't type-check against it — fixed by making it generic over the driver's query-result type, matching the portability design.
 - **Proof:** 14 tests on a 6-record fixture: address search (prefix, case, wildcard escaping), get by key, and every `searchListings` filter (status, area, sub-type, size band, close date, exclude key, limit).
 
-### Step 5: Analysis engine (A2, A3)
-- [ ] `geo.ts` (distance in miles), `search.ts` (candidates and similarity score), `config.ts` (per-area adjustment table), `adjustments.ts`, `pricing.ts` (weighted range and suggested list price).
-- [ ] Pure functions with no database or model access, apart from `search.ts` calling the provider.
-- **Proof (A3):** hand-calculated expected adjustments and ranges. **(A2):** one typical subject per area yields at least 5 closed comps on the full seed dataset.
-- Tune generator variance here if A2 fails or results look implausible (risk C6).
+### Step 5: Analysis engine (A2, A3) — done (1629dd0, branch step-5-analysis-engine)
+- [x] `geo.ts` (distance in miles), `search.ts` (candidates and similarity score), `config.ts` (per-area adjustment table), `adjustments.ts`, `pricing.ts` (weighted range and suggested list price).
+- [x] Pure functions with no database or model access, apart from `search.ts` calling the provider.
+- **Proof:** 19 tests. A3: hand-calculated adjustments, pricing, distance and similarity score. A2: at least 5 closed comps for a typical (median-sized) subject in all 10 areas, against the full 1,500-record dataset.
+- **Found while building:** `search.ts`'s size-band math produced fractional values for an integer column, rejected by Postgres (including the real Neon database); fixed. The first A2 test picked an arbitrary row as "typical," causing a spurious Kirkland failure; switched to the median-sized closed sale per area.
+- **Found in review:** adjustment line items weren't rounded before summing, so a printed grid wouldn't add up to its own total; fixed by rounding each line item first.
 
 ### Step 6: Access, sessions and credits (A8, A9, A10)
 - [ ] `access.ts`: random high-entropy codes; stored as SHA-256 hashes, which are sufficient for random codes and need no password-hashing library; revocation check; failed attempts rate-limited per IP through `access_attempts`.
