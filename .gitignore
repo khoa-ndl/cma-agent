@@ -27,3 +27,4 @@ npm-debug.log*
 
 # Generated reports
 *.pdf
+.env*

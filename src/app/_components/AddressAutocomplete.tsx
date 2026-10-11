@@ -12,8 +12,17 @@ export function AddressAutocomplete({ onSelect }: { onSelect: (match: AddressMat
   const [highlighted, setHighlighted] = useState(-1);
   const requestId = useRef(0);
   const optionRefs = useRef<Array<HTMLLIElement | null>>([]);
+  // select() sets query to the picked address so the input shows it — but
+  // that's a query change too, which would otherwise re-trigger this same
+  // search effect and reopen the dropdown with the just-picked address as
+  // its own match.
+  const skipNextSearch = useRef(false);
 
   useEffect(() => {
+    if (skipNextSearch.current) {
+      skipNextSearch.current = false;
+      return;
+    }
     const id = ++requestId.current;
     const timeout = setTimeout(async () => {
       if (query.trim().length === 0) {
@@ -35,6 +44,7 @@ export function AddressAutocomplete({ onSelect }: { onSelect: (match: AddressMat
   }, [highlighted]);
 
   function select(match: AddressMatch) {
+    skipNextSearch.current = true;
     setQuery(match.unparsedAddress);
     setOpen(false);
     setHighlighted(-1);
