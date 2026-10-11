@@ -17,6 +17,7 @@
     "codes:issue": "tsx scripts/issue-code.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@neondatabase/serverless": "^1.2.0",
     "drizzle-orm": "^0.45.4",
     "next": "16.4.0",
