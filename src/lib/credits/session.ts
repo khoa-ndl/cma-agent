@@ -4,7 +4,11 @@
 // in Step 8; this file only signs and verifies the token's contents.
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+// Idle timeout, not a fixed lifetime (operator-dashboard spec.md): a
+// request-intercepting proxy.ts reissues the token with a fresh
+// issuedAt on activity, sliding this window forward. Exported as the
+// one source of truth for the cookie's own maxAge (_lib/session.ts).
+export const MAX_AGE_MS = 90 * 60 * 1000; // 90 minutes
 
 interface SessionPayload {
   accessCodeId: string;

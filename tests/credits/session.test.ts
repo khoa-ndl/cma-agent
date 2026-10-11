@@ -38,11 +38,20 @@ describe("session tokens", () => {
 
   it("rejects an expired token, even with a correct signature", () => {
     // Built by hand, signed the same way session.ts signs a real token,
-    // so this isolates the expiry check from the signature check.
-    const payload = { accessCodeId: "code-123", issuedAt: Date.now() - 31 * 24 * 60 * 60 * 1000 };
+    // so this isolates the expiry check from the signature check. 91
+    // minutes ago is past the 90-minute idle timeout.
+    const payload = { accessCodeId: "code-123", issuedAt: Date.now() - 91 * 60 * 1000 };
     const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
     const signature = createHmac("sha256", SECRET).update(encoded).digest("base64url");
 
     expect(verifySessionToken(`${encoded}.${signature}`, SECRET)).toBeNull();
+  });
+
+  it("accepts a token issued just under 90 minutes ago", () => {
+    const payload = { accessCodeId: "code-123", issuedAt: Date.now() - 89 * 60 * 1000 };
+    const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
+    const signature = createHmac("sha256", SECRET).update(encoded).digest("base64url");
+
+    expect(verifySessionToken(`${encoded}.${signature}`, SECRET)).toEqual({ accessCodeId: "code-123" });
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSessionToken } from "@/lib/credits/session";
+import { createSessionToken, MAX_AGE_MS } from "@/lib/credits/session";
 import { resolveAccessCodeId, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "@/app/api/_lib/session";
 
 const SECRET = "test-secret";
@@ -21,8 +21,12 @@ describe("resolveAccessCodeId", () => {
 });
 
 describe("SESSION_MAX_AGE_SECONDS", () => {
-  it("matches session.ts's 30-day expiry", () => {
-    expect(SESSION_MAX_AGE_SECONDS).toBe(30 * 24 * 60 * 60);
+  it("is 90 minutes (the idle timeout)", () => {
+    expect(SESSION_MAX_AGE_SECONDS).toBe(90 * 60);
+  });
+
+  it("never drifts from session.ts's own MAX_AGE_MS", () => {
+    expect(SESSION_MAX_AGE_SECONDS * 1000).toBe(MAX_AGE_MS);
   });
 });
 

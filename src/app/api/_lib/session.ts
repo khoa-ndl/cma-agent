@@ -2,10 +2,10 @@
 // value into the accessCodeId a route can trust, or null for anything
 // invalid. Kept out of session.ts itself so that module stays framework-
 // agnostic (no cookie-shape assumptions).
-import { verifySessionToken } from "@/lib/credits/session";
+import { MAX_AGE_MS, verifySessionToken } from "@/lib/credits/session";
 
 export const SESSION_COOKIE_NAME = "cma_session";
-export const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // matches session.ts's expiry
+export const SESSION_MAX_AGE_SECONDS = MAX_AGE_MS / 1000; // derived, not a separate literal
 
 export function resolveAccessCodeId(cookieValue: string | undefined, secret: string): string | null {
   if (!cookieValue) return null;
