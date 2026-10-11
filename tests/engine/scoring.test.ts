@@ -50,6 +50,7 @@ function stubProvider(rows: Property[]): DataProvider {
     searchAddresses: async () => [],
     getProperty: async () => null,
     searchListings: async () => rows,
+    getAsOfDate: () => new Date("2026-10-10T00:00:00Z"),
   };
 }
 

@@ -47,4 +47,12 @@ export interface DataProvider {
   searchAddresses(query: string, limit: number): Promise<AddressMatch[]>;
   getProperty(listingKey: string): Promise<Property | null>;
   searchListings(criteria: ListingCriteria): Promise<Property[]>;
+  /**
+   * What "now" means for this data source — the reference point
+   * "trailing N months" searches measure back from. A live MLS feed
+   * would return the real current time; the sample dataset returns its
+   * own fixed generation date, so "recent" sales stay well-defined no
+   * matter how long after generation the app is actually run.
+   */
+  getAsOfDate(): Date;
 }

@@ -77,7 +77,7 @@ export async function* runCmaAgent(
   provider: DataProvider,
   modelTurn: ModelTurn,
 ): AsyncGenerator<AgentProgressEvent, AgentRunOutcome> {
-  const asOf = new Date();
+  const asOf = provider.getAsOfDate();
   const state = createRunState();
   const { tools, handlers } = createTools(subject, provider, asOf, state);
 

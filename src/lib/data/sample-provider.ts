@@ -5,6 +5,7 @@ import { and, eq, gte, ilike, inArray, lte, ne } from "drizzle-orm";
 import type { Database } from "@/lib/db/client";
 import { property } from "@/lib/db/schema";
 import type { AddressMatch, DataProvider, ListingCriteria } from "./provider";
+import { GENERATED_AS_OF } from "./generator";
 
 const DEFAULT_SEARCH_LIMIT = 200;
 
@@ -56,5 +57,7 @@ export function createSampleDataProvider(db: Database): DataProvider {
       const query = db.select().from(property).limit(criteria.limit ?? DEFAULT_SEARCH_LIMIT);
       return conditions.length ? query.where(and(...conditions)) : query;
     },
+
+    getAsOfDate: () => GENERATED_AS_OF,
   };
 }

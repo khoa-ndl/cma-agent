@@ -99,6 +99,47 @@ describe("runCmaAgent", () => {
     ]);
   });
 
+  it("anchors the comp search to the provider's own as-of date, not the real clock", async () => {
+    // A sale closed in 2019 would never be "within the trailing 12
+    // months" of the real clock today — but it is within 12 months of
+    // this fixed as-of date. Finding it proves the loop used
+    // provider.getAsOfDate(), not new Date().
+    await testDb.db.insert(property).values({
+      ...FIXTURE_PROPERTIES[0],
+      listingKey: "FX-OLD",
+      unparsedAddress: "99 Old Ballard Ave NW",
+      closeDate: "2019-06-01",
+    });
+    const provider = {
+      ...createSampleDataProvider(testDb.db),
+      getAsOfDate: () => new Date("2020-01-01T00:00:00Z"),
+    };
+
+    let callCount = 0;
+    let searchResultContent = "";
+    const model: ModelTurn = async (messages) => {
+      callCount++;
+      if (callCount === 1) {
+        return toolTurn("search_comps", {
+          radiusMiles: 10,
+          monthsBack: 12,
+          sizeBandPercent: 50,
+          statuses: ["Closed"],
+        });
+      }
+      const toolResult = messages.at(-1) as { content: Array<{ content: string }> };
+      searchResultContent = toolResult.content[0].content;
+      // Ends the run immediately (no tool call needed) rather than
+      // nudging for another turn, since the search result is all this
+      // test needs.
+      return { stopReason: "refusal", content: [], usage: usage() };
+    };
+
+    await drain(runCmaAgent(SUBJECT, provider, model));
+
+    expect(searchResultContent).toContain("FX-OLD");
+  });
+
   it("stops at the turn limit if the model never calls submit_cma (A11)", async () => {
     const provider = createSampleDataProvider(testDb.db);
     const { outcome } = await drain(runCmaAgent(SUBJECT, provider, neverFinishes()));
