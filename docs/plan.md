@@ -102,14 +102,16 @@ Each step: write tests first and confirm they fail, implement until they pass, r
 - **Found in review, asked to specifically trace what the fake-model tests can't catch:** thinking blocks were silently corrupted into empty text blocks when building conversation history — the SDK's own docs say a modified thinking block gets a 400 error on the very next turn, so this would have failed the live test outright. Fixed, with a regression test that inspects what the loop actually sends on the next turn. Separately, `excludedComps`'s `.default([])` still showed up as `required` in the generated schema (confirmed by generating it) — switched to `.optional()`.
 - **Live proof (A4) — done:** ran with operator approval. First run failed: Anthropic's strict tool schema rejects JSON Schema bound keywords (`minimum`, `maximum`, `maxItems`, etc.) that zod's `.positive()`/`.max()`/`.min()` generate — a 400 error on every call, something the scripted fake-model tests can't see since they never build real JSON Schema or call the real API. Fixed in `tools.ts` by stripping those keywords from the schema sent over the wire; the zod schema still enforces the bound at runtime, so an out-of-range value from the model still comes back as a tool error. Added a regression test that inspects the generated schema directly. Re-ran: 3/3 passed, $0.136 total (well under the $0.50 estimate) — Ballard $0.0388, Capitol Hill $0.039, Bellevue $0.0581, 1,400–1,500 output tokens each.
 
-### Step 8: API routes (A6, A15)
-- [ ] `POST /api/access`: validate code, set session cookie.
-- [ ] `GET /api/addresses?q=`: autocomplete.
-- [ ] `POST /api/reports`: validate subject facts, reserve credits, run the agent, stream progress as server-sent events.
-- [ ] `GET /api/reports/[id]`: status and result, used to recover after a dropped connection.
-- [ ] `GET /api/reports/[id]/pdf`: renders the PDF (Step 10).
-- [ ] `GET /api/health`: database round trip; 200 or 503 (A15).
-- **Proof:** route tests with the fake model client: SSE events arrive in order; unauthenticated requests rejected; health returns 503 when the database is unavailable.
+### Step 8: API routes (A6, A15) — done, branch step-8-api-routes
+- [x] `POST /api/access`: validate code, set session cookie.
+- [x] `GET /api/addresses?q=`: autocomplete.
+- [x] `POST /api/reports`: validate subject facts, reserve credits, run the agent, stream progress as server-sent events.
+- [x] `GET /api/reports/[id]`: status and result, used to recover after a dropped connection.
+- [ ] `GET /api/reports/[id]/pdf`: **moved to Step 10.** The renderer it depends on (`report-document.tsx`) doesn't exist yet; building this route now meant either a throwaway stub or dead code, and Step 8's own proof criteria below don't exercise it.
+- [x] `GET /api/health`: database round trip; 200 or 503 (A15). Uses `connection()` to opt out of Cache Components' static prerendering — found when `next build` tried to prerender it at build time with no `DATABASE_URL` set, since it touches no other request-time API.
+- **Pattern:** each route's logic lives in a plain function taking `db` (and, for `/api/reports`, `modelTurn`) as a parameter — same DI pattern as every `lib/` module — so tests run against the PGlite fixture and the scripted fake model with no cost. `route.ts` is a thin adapter (cookies, query params, `getDb()`/`runModelTurn`) and isn't separately tested, same precedent as `client.ts`/`model-client.ts`.
+- **Proof:** 43 new tests (131 total) — SSE events arrive in order, then a `done` event; a successful run persists its result and leaves the reservation in place; a run that hits the turn limit refunds credits and marks the report failed (A8, A11); a report 404s for a different code instead of 403ing (no existence leak); unauthenticated requests rejected on every protected route; health returns 503 when the database is unavailable.
+- **Found in review:** the refund and the usage/cost update on a failed run are two separate statements, in the safer order (refund — the money-correct part — first). Left as two statements for now; folding them into one atomic statement is a nice-to-have, not required, since a crash between them can't cause a double-refund or an un-refunded run, only a failed report missing its usage numbers.
 
 ### Step 9: User interface (A6, A13)
 - [ ] `/`: product description, disclosures, code entry.
