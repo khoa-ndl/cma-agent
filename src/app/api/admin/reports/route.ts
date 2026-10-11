@@ -5,6 +5,10 @@ import { runModelTurn } from "@/lib/agent/model-client";
 import { isAdminSession } from "../../_lib/admin-session";
 import { handleCreateOperatorReport, listAllReports, type AdminReportStreamEvent } from "./logic";
 
+// Same bound as the end-user reports route (src/app/api/reports/route.ts) —
+// shares the same agent loop and the same unconfirmed-default risk.
+export const maxDuration = 300;
+
 export async function GET(request: NextRequest) {
   const isAdmin = isAdminSession(request.cookies);
   const result = await listAllReports(getDb(), isAdmin);

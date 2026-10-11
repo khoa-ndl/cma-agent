@@ -11,9 +11,10 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(result.body, { status: result.status });
 }
 
-// Vercel's function duration limit (plan.md Step 11, spec C3) isn't
-// confirmed yet, so `maxDuration` isn't set here — that's Step 11's job,
-// once the real limit is known.
+// A typical CMA run (3 tool calls) finishes in single-digit seconds, but
+// this bounds the worst case explicitly rather than relying on whatever
+// Vercel's unstated default happens to be (plan.md Step 11, spec C3).
+export const maxDuration = 300;
 
 function toSseStream(events: AsyncGenerator<ReportStreamEvent, void>): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
