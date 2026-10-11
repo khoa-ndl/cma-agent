@@ -11,8 +11,10 @@ const CODE_BYTES = 16; // 128 bits of entropy
 const GROUP_SIZE = 4;
 const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
-const MAX_FAILED_ATTEMPTS = 10;
-const RATE_LIMIT_WINDOW_MINUTES = 15;
+// Exported so the admin login's own rate limiter (operator-dashboard
+// spec.md) uses the same threshold without redeclaring it.
+export const MAX_FAILED_ATTEMPTS = 10;
+export const RATE_LIMIT_WINDOW_MINUTES = 15;
 
 function base32Encode(buf: Buffer): string {
   let bits = 0;

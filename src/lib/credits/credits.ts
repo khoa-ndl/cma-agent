@@ -15,8 +15,9 @@ import type { Database } from "@/lib/db/client";
 export const REPORT_COST = 5;
 // Generous beyond a typical serverless function's duration; confirm
 // against the real limit in Step 11 (plan.md risk: Vercel Hobby duration)
-// and tighten if needed.
-const STALE_RUN_MINUTES = 5;
+// and tighten if needed. Exported so the admin overview's stuck-reports
+// query (operator-dashboard spec.md) shares this threshold.
+export const STALE_RUN_MINUTES = 5;
 
 export type ReserveFailureReason = "revoked_or_not_found" | "already_running" | "insufficient_credits";
 

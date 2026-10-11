@@ -150,3 +150,17 @@ export const accessAttempts = pgTable(
   },
   (t) => [index("access_attempts_ip_time_idx").on(t.ipAddress, t.createdAt)],
 );
+
+// Rate limiting for admin login attempts. A dedicated table, not shared
+// with accessAttempts, so an attacker hammering one can't lock out the
+// other's budget (operator-dashboard spec.md, Decisions).
+export const adminLoginAttempts = pgTable(
+  "admin_login_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ipAddress: text("ip_address").notNull(),
+    succeeded: boolean("succeeded").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("admin_login_attempts_ip_time_idx").on(t.ipAddress, t.createdAt)],
+);

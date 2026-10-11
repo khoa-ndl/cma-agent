@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../helpers/db";
-import { accessCodes, accessAttempts, creditLedger, property, reports } from "@/lib/db/schema";
+import {
+  accessCodes,
+  accessAttempts,
+  adminLoginAttempts,
+  creditLedger,
+  property,
+  reports,
+} from "@/lib/db/schema";
 
 describe("database schema", () => {
   let testDb: TestDb;
@@ -20,6 +27,7 @@ describe("database schema", () => {
     await expect(db.select().from(reports)).resolves.toEqual([]);
     await expect(db.select().from(creditLedger)).resolves.toEqual([]);
     await expect(db.select().from(accessAttempts)).resolves.toEqual([]);
+    await expect(db.select().from(adminLoginAttempts)).resolves.toEqual([]);
   });
 
   it("rejects a second running report for the same access code (A9)", async () => {
