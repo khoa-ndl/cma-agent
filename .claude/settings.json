@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(npm test *)",
+      "Bash(npx vitest *)",
+      "Bash(claude plugin list*)",
+      "Bash(supabase --version*)",
+      "Bash(npm view *)",
+      "Bash(vercel --version*)",
+      "Bash(npm run typecheck*)",
+      "Bash(command -v *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(git branch -d *)",
+      "Bash(git merge --ff-only *)",
+      "Bash(npm run build*)",
+      "Bash(npm run dev*)",
+      "Bash(npm run db:migrate*)",
+      "Bash(npm run db:seed*)"
+    ]
+  }
+}

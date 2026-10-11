@@ -17,7 +17,10 @@ Requires Node.js 24 or later.
 
 ```bash
 npm install
-cp .env.example .env   # then fill in the values
+cp .env.example .env   # then fill in the values, including a Postgres connection string
+npm run db:migrate     # apply the schema
+npm run db:seed        # load the sample dataset
+npm run codes:issue -- --label "your name" --credits 45   # get an access code, printed once
 npm run dev            # http://localhost:3000
 ```
 
@@ -29,6 +32,10 @@ npm run dev            # http://localhost:3000
 | `npm run test:live` | Tests that call the paid Anthropic API. Run deliberately. |
 | `npm run dev` | Local development server |
 | `npm run build` | Production build |
+| `npm run db:generate` / `npm run db:migrate` | Generate / apply Drizzle SQL migrations |
+| `npm run db:seed` | Load the sample dataset into the database |
+| `npm run data:generate` | Regenerate the sample dataset (deterministic) |
+| `npm run codes:issue -- --label "…" --credits 45` | Issue a new access code |
 
 ## Author
 
