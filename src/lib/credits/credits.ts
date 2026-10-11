@@ -6,6 +6,7 @@
 import { sql } from "drizzle-orm";
 import type { PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { Database } from "@/lib/db/client";
+import { OPERATOR_CODE_LABEL } from "@/lib/credits/access";
 
 // .execute()'s return shape is tied to the specific driver's query-result
 // type (unlike .select()/.insert()), so every function here that calls it
@@ -135,7 +136,12 @@ export async function refundCredits<TQueryResult extends PgQueryResultHKT>(
 
 /** Fails and refunds any report that's been "running" longer than a
  * crashed serverless function ever could — called before every new
- * reservation (plan.md Step 6 departure), not on a schedule. */
+ * reservation (plan.md Step 6 departure), not on a schedule. Every
+ * stale report is marked failed, customer or operator alike, so
+ * neither kind can block a new one forever -- but the operator
+ * sentinel is excluded from the refund and the ledger entry, since it
+ * never went through reserveCredits in the first place and has
+ * nothing to refund (operator-dashboard spec.md D6). */
 export async function sweepStaleRuns<TQueryResult extends PgQueryResultHKT>(
   db: Database<TQueryResult>,
 ): Promise<void> {
@@ -149,10 +155,12 @@ export async function sweepStaleRuns<TQueryResult extends PgQueryResultHKT>(
     refunded AS (
       UPDATE access_codes
       SET credits_balance = credits_balance + ${REPORT_COST}
-      WHERE id IN (SELECT access_code_id FROM stale)
+      WHERE id IN (SELECT access_code_id FROM stale) AND label != ${OPERATOR_CODE_LABEL}
       RETURNING id
     )
     INSERT INTO credit_ledger (access_code_id, delta, reason, report_id)
-    SELECT access_code_id, ${REPORT_COST}, 'refund', id FROM stale
+    SELECT stale.access_code_id, ${REPORT_COST}, 'refund', stale.id
+    FROM stale
+    JOIN refunded ON refunded.id = stale.access_code_id
   `);
 }

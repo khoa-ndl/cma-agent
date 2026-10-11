@@ -210,4 +210,35 @@ describe("sweepStaleRuns", () => {
     const [unchanged] = await testDb.db.select().from(reports).where(sql`${reports.id} = ${recentReport.id}`);
     expect(unchanged.status).toBe("running");
   });
+
+  it("fails a stale operator-sentinel report without refunding it or writing a ledger row", async () => {
+    // The sentinel never goes through reserveCredits, so it never had
+    // anything deducted -- refunding it on sweep would be free, unearned
+    // credit, which is exactly what happened the first time this was run
+    // against a real crash (an invalid API key left an operator report
+    // stuck running, and the next sweep "refunded" it 5 credits it was
+    // never charged).
+    const [sentinel] = await testDb.db
+      .insert(accessCodes)
+      .values({ codeHash: "operator-sentinel-hash", label: "__operator__", creditsBalance: 0 })
+      .returning();
+    const [staleReport] = await testDb.db
+      .insert(reports)
+      .values({ accessCodeId: sentinel.id, status: "running", subject: {} })
+      .returning();
+    await testDb.db.execute(
+      sql`UPDATE reports SET created_at = now() - interval '10 minutes' WHERE id = ${staleReport.id}`,
+    );
+
+    await sweepStaleRuns(testDb.db);
+
+    const [swept] = await testDb.db.select().from(reports).where(sql`${reports.id} = ${staleReport.id}`);
+    expect(swept.status).toBe("failed");
+
+    const [afterward] = await testDb.db.select().from(accessCodes).where(sql`${accessCodes.id} = ${sentinel.id}`);
+    expect(afterward.creditsBalance).toBe(0);
+
+    const ledgerRows = await testDb.db.select().from(creditLedger);
+    expect(ledgerRows).toHaveLength(0);
+  });
 });
