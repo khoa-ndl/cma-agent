@@ -1,7 +1,9 @@
 // Per-comp dollar adjustments (spec 4.1, 4.2): adjusts each comparable
 // toward the subject, the standard appraisal convention — a line item is
 // positive when the subject's value for that factor exceeds the comp's.
+import { z } from "zod";
 import type { Property } from "@/lib/data/provider";
+import { propertyCondition, propertySubType } from "@/lib/db/schema";
 import type { AdjustmentRates } from "./config";
 
 const MS_PER_MONTH = 1000 * 60 * 60 * 24 * 30;
@@ -28,6 +30,23 @@ export interface Subject {
   garageSpaces: number;
   propertyCondition: Property["propertyCondition"];
 }
+
+// Validates subject facts from the API request body (spec 8: "structured
+// property facts with validated types and ranges"). Shared with Step 9's
+// UI form, so the browser and the server enforce the same bounds.
+export const subjectInputSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  mlsAreaMajor: z.string().min(1),
+  propertySubType: z.enum(propertySubType.enumValues),
+  bedroomsTotal: z.number().int().min(0).max(20),
+  bathroomsTotalInteger: z.number().int().min(0).max(20),
+  livingArea: z.number().int().positive().max(50_000),
+  lotSizeSquareFeet: z.number().int().positive().max(10_000_000).nullable(),
+  yearBuilt: z.number().int().min(1800).max(2100),
+  garageSpaces: z.number().int().min(0).max(20),
+  propertyCondition: z.enum(propertyCondition.enumValues),
+}) satisfies z.ZodType<Subject>;
 
 export interface AdjustmentLineItem {
   factor:
