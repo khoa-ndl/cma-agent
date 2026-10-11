@@ -28,7 +28,7 @@ export default async function HomePage() {
     // cookie (A10).
     const status = await getAccessCodeStatus(getDb(), accessCodeId);
     if (status && !status.revoked) {
-      redirect("/cma/new");
+      redirect("/cma");
     }
   }
 

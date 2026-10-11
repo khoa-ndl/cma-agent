@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LogoutButton } from "../_components/LogoutButton";
 
 const NAV_ITEMS = [
+  { href: "/cma", label: "Home" },
   { href: "/cma/new", label: "New CMA" },
   { href: "/cma/reports", label: "Reports Generated" },
 ];

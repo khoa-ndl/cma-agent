@@ -65,4 +65,22 @@ describe("listReports", () => {
     expect(body.reports[0].unparsedAddress).toBeNull();
     expect(body.reports[0].mlsAreaMajor).toBe("Ballard");
   });
+
+  it("caps the result at an optional limit, still newest first (end-user home page)", async () => {
+    const areas: [string, string][] = [
+      ["Ballard", "2026-10-01T00:00:00Z"],
+      ["Fremont", "2026-10-03T00:00:00Z"],
+      ["Capitol Hill", "2026-10-05T00:00:00Z"],
+    ];
+    for (const [area, createdAt] of areas) {
+      await testDb.db
+        .insert(reports)
+        .values({ accessCodeId: CODE_A, status: "succeeded", subject: { mlsAreaMajor: area }, createdAt: new Date(createdAt) });
+    }
+
+    const result = await listReports(testDb.db, CODE_A, 2);
+    const body = result.body as { reports: Array<{ mlsAreaMajor: string | null }> };
+    expect(body.reports).toHaveLength(2);
+    expect(body.reports[0].mlsAreaMajor).toBe("Capitol Hill"); // newest first
+  });
 });

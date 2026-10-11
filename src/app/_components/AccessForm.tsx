@@ -29,7 +29,7 @@ export function AccessForm() {
       });
 
       if (response.ok) {
-        router.push("/cma/new");
+        router.push("/cma");
         return;
       }
 

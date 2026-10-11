@@ -134,6 +134,7 @@ export interface ReportListResult {
 export async function listReports<TQueryResult extends PgQueryResultHKT>(
   db: Database<TQueryResult>,
   accessCodeId: string | null,
+  limit: number = MAX_LISTED_REPORTS,
 ): Promise<ReportListResult> {
   if (!accessCodeId) {
     return { status: 401, body: { reason: "unauthenticated" } };
@@ -144,7 +145,7 @@ export async function listReports<TQueryResult extends PgQueryResultHKT>(
     .from(reports)
     .where(eq(reports.accessCodeId, accessCodeId))
     .orderBy(desc(reports.createdAt))
-    .limit(MAX_LISTED_REPORTS);
+    .limit(limit);
 
   const items: ReportListItem[] = rows.map((row) => {
     const subject = row.subject as { unparsedAddress?: string; mlsAreaMajor?: string } | null;
