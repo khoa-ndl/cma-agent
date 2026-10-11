@@ -3,25 +3,11 @@
 import { useEffect, useState } from "react";
 import type { Subject } from "@/lib/engine/adjustments";
 import type { ReportBody } from "@/app/api/reports/[id]/logic";
+import { ADJUSTMENT_FACTORS, currency } from "@/lib/report-formatting";
 
 export type { ReportBody };
 
 const POLL_MS = 2500;
-
-const ADJUSTMENT_FACTORS: Array<[string, string]> = [
-  ["livingArea", "Living area"],
-  ["bedrooms", "Bedrooms"],
-  ["bathrooms", "Bathrooms"],
-  ["garageSpaces", "Garage"],
-  ["lotSize", "Lot size"],
-  ["age", "Age"],
-  ["condition", "Condition"],
-  ["marketTime", "Market time"],
-];
-
-function currency(n: number): string {
-  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-}
 
 export function ReportView({ reportId, initial }: { reportId: string; initial: ReportBody }) {
   const [report, setReport] = useState(initial);
@@ -165,14 +151,12 @@ export function ReportView({ reportId, initial }: { reportId: string; initial: R
         <p className="text-sm text-(--color-foreground)">{result.rationale}</p>
       </section>
 
-      <button
-        type="button"
-        disabled
-        title="PDF export is coming in a later step"
-        className="min-h-11 w-fit cursor-not-allowed rounded-lg border border-(--color-border) px-5 py-3 font-semibold text-(--color-muted-foreground)"
+      <a
+        href={`/api/reports/${reportId}/pdf`}
+        className="min-h-11 w-fit cursor-pointer rounded-lg border border-(--color-border) px-5 py-3 font-semibold text-(--color-foreground) transition-opacity duration-200 hover:opacity-80"
       >
-        Download PDF (coming soon)
-      </button>
+        Download PDF
+      </a>
     </div>
   );
 }

@@ -139,9 +139,13 @@ Raised as a side question while reviewing Step 9's manual check, not tied to any
 - Also stamped `GENERATED_AS_OF` into a new `data/seed/metadata.json` sidecar file (not a field on `properties.json` itself, so `scripts/seed.ts` and the live test's loader keep reading a plain array unchanged) — pure human traceability; the engine itself reads the value from the exported constant, never this file.
 - **Proof:** 1 new test — a comp closed in 2019 (which no live "trailing 12 months" search could ever find against the real clock) is found when the provider's `getAsOfDate()` returns a 2020 reference date, proving the loop uses the provider's date, not `new Date()`.
 
-### Step 10: PDF report (A7, A13)
-- [ ] `report-document.tsx`: cover, subject, comps, adjustment grid, recommendation, rationale, methodology appendix, disclosures in the footer of every page.
-- **Proof:** test renders a fixed result, extracts text with `unpdf`, and checks every section and the disclosures on every page. A visual review follows.
+### Step 10: PDF report (A7, A13) — done, branch step-10-pdf-report
+- [x] `report-document.tsx`: cover page, subject, comps table, adjustment grid, pricing recommendation, rationale, excluded comps, methodology appendix (the actual per-area adjustment rates, not just the computed grid — spec 4.2), disclosures fixed in the footer of every page via react-pdf's `fixed` prop, which repeats across auto-pagination with no extra work.
+- [x] `GET /api/reports/[id]/pdf`: renders and streams the PDF, deferred from Step 8. Reuses `getReport`'s auth and ownership check, so a report owned by another code 404s the same way the status endpoint does. Refuses with 409 if the report hasn't succeeded yet.
+- [x] `ReportView`'s "Download PDF (coming soon)" placeholder replaced with a real link to the route.
+- [x] Installed `@react-pdf/renderer` and `unpdf` (dev), both already named in Step 1's toolchain.
+- [x] Extracted `ADJUSTMENT_FACTORS` and `currency()` to a shared `src/lib/report-formatting.ts` — found in review, exact duplication between `ReportView.tsx` and `report-document.tsx` (two renderers of the same report, one HTML, one PDF, with no way to literally share JSX between them).
+- **Proof:** 5 new tests (146 total). `report-document.test.ts` renders a fixed result, extracts text per page with `unpdf`, and checks every section and both disclosures on every page (A7, A13). `report-pdf.test.ts` proves the route's auth, ownership (404, not 403) and readiness (409 before the run succeeds) gates, and that a successful render actually contains that report's own data. **Visual review — done:** downloaded a real PDF through the live route (real Neon data, an already-succeeded report) and read it directly — 4 pages, cover page, all sections present, disclosures on every page, clean layout, no garbled text.
 
 ### Step 11: Accounts, environment and first deploy (preview only)
 You complete these steps; I provide numbered instructions:
