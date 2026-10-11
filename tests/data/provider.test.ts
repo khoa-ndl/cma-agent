@@ -48,6 +48,23 @@ describe("SampleDataProvider", () => {
       const results = await provider.searchAddresses("4_00", 10);
       expect(results).toHaveLength(0);
     });
+
+    it("returns enough facts to pre-fill the New CMA form (spec 5 screen 2)", async () => {
+      const [match] = await provider.searchAddresses("42", 10);
+      expect(match).toMatchObject({
+        latitude: 47.67,
+        longitude: -122.38,
+        mlsAreaMajor: "Ballard",
+        propertySubType: "SingleFamilyResidence",
+        bedroomsTotal: 3,
+        bathroomsTotalInteger: 2,
+        livingArea: 2000,
+        lotSizeSquareFeet: 5000,
+        yearBuilt: 1990,
+        garageSpaces: 1,
+        propertyCondition: "Good",
+      });
+    });
   });
 
   describe("getProperty", () => {

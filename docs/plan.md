@@ -113,12 +113,21 @@ Each step: write tests first and confirm they fail, implement until they pass, r
 - **Proof:** 43 new tests (131 total) — SSE events arrive in order, then a `done` event; a successful run persists its result and leaves the reservation in place; a run that hits the turn limit refunds credits and marks the report failed (A8, A11); a report 404s for a different code instead of 403ing (no existence leak); unauthenticated requests rejected on every protected route; health returns 503 when the database is unavailable.
 - **Found in review:** the refund and the usage/cost update on a failed run are two separate statements, in the safer order (refund — the money-correct part — first). Left as two statements for now; folding them into one atomic statement is a nice-to-have, not required, since a crash between them can't cause a double-refund or an un-refunded run, only a failed report missing its usage numbers.
 
-### Step 9: User interface (A6, A13)
-- [ ] `/`: product description, disclosures, code entry.
-- [ ] `/cma/new`: address autocomplete, pre-filled editable facts, credit balance.
-- [ ] `/cma/[id]`: live progress feed, then results (comps table, adjustment grid, range, rationale, excluded comps, PDF button). Falls back to polling the report if the stream drops.
-- [ ] Disclosures in the root layout so they appear on every page.
-- **Proof:** a test renders each page and checks the disclosures (A13). **Manual browser check with numbered steps for you (A6):** progress appears before completion.
+### Step 9: User interface (A6, A13) — done, branch step-9-user-interface
+- [x] `/`: product description, disclosures, code entry.
+- [x] `/cma/new`: address autocomplete, pre-filled editable facts, credit balance.
+- [x] `/cma/[id]`: live progress feed, then results (comps table, adjustment grid, range, rationale, excluded comps, PDF button placeholder — real button in Step 10). Falls back to polling the report if the stream drops.
+- [x] Disclosures in the root layout so they appear on every page.
+- **Design system:** `ui-ux-pro-max` generated one (Minimalism/Swiss style, trust-blue + orange accent, Plus Jakarta Sans, light mode only, subtle motion) — persisted at `design-system/cma-agent/MASTER.md`.
+- **Pattern:** the live SSE stream starts and finishes inside `NewCmaForm` on `/cma/new` — it never navigates away mid-stream (a real page transition would cancel the fetch and abandon the agent run, stuck until the stale-run sweep). `window.history.replaceState` swaps the visible URL to `/cma/[id]` as soon as the id is known, purely cosmetic (same mounted component, same open connection); a real navigation only happens once the run is done. `/cma/[id]` itself never starts a run — it always reads the persisted report and polls if still running, which is also what a dropped connection or page refresh lands on.
+- **Proof:** 9 new tests (140 total) — the root layout renders both disclosures regardless of its children (A13); the hand-rolled SSE line parser handles events split across chunks; `AddressMatch` carries every fact the form pre-fills; the new `getAccessCodeStatus` balance lookup. The three pages (Server Components reading cookies/db) aren't unit-tested, same precedent as `client.ts`/`model-client.ts` — proven instead by `next build` and the manual walkthrough below.
+- **Manual browser check (A6) — done:** full walkthrough against a real Neon database and the real Anthropic API (chromium via Playwright, since `chromium-cli` wasn't installed): access code → `/cma/new` with balance and pre-filled facts → live progress events appear in order before the results page → results render all required sections → disclosures present throughout → no console errors.
+- **Found in the manual check, fixed:**
+  - `db:seed`, `codes:issue` and `test:live` didn't load `.env` (same root cause as Step 7's A4 fix — `tsx`/plain `node` don't auto-load it, only `next` and `drizzle-kit` do) — fixed by running them through `node --env-file=.env`.
+  - `next build` failed prerendering `/cma/[id]`: Cache Components tried to statically prerender it. Fixed with `export const instant = false` on all three pages (the documented migration escape hatch — none of them have a sensible static shell ahead of a session check) plus `await connection()`, which was still needed separately to stop a dev-only "Next.js encountered the unstable value `Date.now()`" error from `verifySessionToken`'s expiry check running before `cookies()` alone registered the route as dynamic.
+  - The Adjustment grid section rendered as a bullet list with no structure, including every `$0` line item — rebuilt as a table matching the Comparable sales section, zero values shown as `—`; the Total column was also getting cut off the right edge (9 columns past the content width), fixed by moving Total next to Address and widening the results page.
+  - **A real bug, not just UI polish:** `/` only checked the session cookie's signature, while `/cma/new` separately checked whether the code was still active and revoked back to `/`. A cookie stays valid for 30 days regardless of revocation, so a revoked code's lingering cookie bounced `/` → `/cma/new` → `/` forever, locking that browser out of even reaching the login form. Fixed by making `/` check the same active-status condition as `/cma/new`.
+- **Open, not yet fixed:** the address autocomplete dropdown has no keyboard navigation (arrow keys / Enter) — mouse-only, which blocks keyboard-only and screen-reader users from the one required step on `/cma/new`. Flagged by the design system's own priority-1 accessibility check. Tracked for Stage 5 review rather than blocking this step.
 
 ### Step 10: PDF report (A7, A13)
 - [ ] `report-document.tsx`: cover, subject, comps, adjustment grid, recommendation, rationale, methodology appendix, disclosures in the footer of every page.
@@ -126,12 +135,13 @@ Each step: write tests first and confirm they fail, implement until they pass, r
 
 ### Step 11: Accounts, environment and first deploy (preview only)
 You complete these steps; I provide numbered instructions:
-- [ ] Anthropic Console: create an API key and set the monthly spend limit (spec 7.3).
-- [ ] GitHub repository `khoa-ndl/cma-agent`, created and pushed only with your approval.
-- [ ] Vercel: import the repository and add the Neon integration (creates `DATABASE_URL`); add `ANTHROPIC_API_KEY`, `SESSION_SECRET`, `ANTHROPIC_MODEL`.
-- [ ] Local `.env` copied from `.env.example`, pointing to a Neon development branch.
-- [ ] Run migrations and seed on Neon.
-- **Proof (A17):** `next build` and `next start` run locally against the Neon development branch, outside Vercel.
+- [x] GitHub repository `khoa-ndl/cma-agent`, created and pushed with your approval — done ahead of schedule, during Step 8 (public repo, your choice).
+- [x] Neon: done ahead of schedule, during Step 9's manual browser check, but **not through the Vercel Marketplace integration** this step originally planned — you created a standalone Neon project directly (console.neon.tech) so the UI check wasn't blocked on the Vercel import first. **Open decision for this step:** when importing to Vercel below, either link this existing Neon project or let Vercel provision a separate one — your call once we're there.
+- [x] Local `.env` filled in: `DATABASE_URL` (the Neon project above) and `SESSION_SECRET` (generated with `openssl rand -base64 32`) — both confirmed working. `ANTHROPIC_API_KEY` was already set from Step 7's A4 approval.
+- [x] Migrations applied and sample dataset seeded on Neon — done during Step 9's check; re-run once more if the dataset generator changes (e.g. the `generatedAsOf` anchor fix under discussion).
+- [ ] Anthropic Console: create an API key and set the monthly spend limit (spec 7.3). **Still open** — the key currently in `.env` was provided directly, not confirmed to have a spend limit set.
+- [ ] Vercel: import the repository and add the Neon integration; add `ANTHROPIC_API_KEY`, `SESSION_SECRET`, `ANTHROPIC_MODEL`.
+- **Proof (A17):** `next build` has been run locally against this Neon database (Step 9) — `next start` (serving the build, not just compiling it) hasn't been run yet; do that here.
 - **Proof (C3):** confirm Vercel Hobby's function duration limit, set `maxDuration`, and record it in spec C3.
 - [ ] Preview deploy, only with your explicit approval.
 

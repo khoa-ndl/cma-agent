@@ -6,11 +6,23 @@ import type { property } from "@/lib/db/schema";
 
 export type Property = typeof property.$inferSelect;
 
+// Carries every fact the "New CMA" form pre-fills (spec 5 screen 2) —
+// everything Subject needs.
 export interface AddressMatch {
   listingKey: string;
   unparsedAddress: string;
   city: string;
   mlsAreaMajor: string;
+  latitude: number;
+  longitude: number;
+  propertySubType: Property["propertySubType"];
+  bedroomsTotal: number;
+  bathroomsTotalInteger: number;
+  livingArea: number;
+  lotSizeSquareFeet: number | null;
+  yearBuilt: number;
+  garageSpaces: number;
+  propertyCondition: Property["propertyCondition"];
 }
 
 export interface ListingCriteria {

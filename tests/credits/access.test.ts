@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../helpers/db";
 import { accessCodes } from "@/lib/db/schema";
-import { checkAccessCode, generateAccessCode, hashAccessCode } from "@/lib/credits/access";
+import { checkAccessCode, generateAccessCode, getAccessCodeStatus, hashAccessCode } from "@/lib/credits/access";
 
 describe("generateAccessCode / hashAccessCode", () => {
   it("generates unique, dash-grouped codes", () => {
@@ -90,5 +90,39 @@ describe("checkAccessCode", () => {
 
     const result = await checkAccessCode(testDb.db, code, "198.51.100.9");
     expect(result.ok).toBe(true);
+  });
+});
+
+describe("getAccessCodeStatus", () => {
+  let testDb: TestDb;
+
+  beforeEach(async () => {
+    testDb = await createTestDb();
+  });
+
+  afterEach(async () => {
+    await testDb.close();
+  });
+
+  it("returns the current balance for an active code", async () => {
+    const [row] = await testDb.db
+      .insert(accessCodes)
+      .values({ codeHash: hashAccessCode("x"), label: "Test", creditsBalance: 30 })
+      .returning();
+
+    expect(await getAccessCodeStatus(testDb.db, row.id)).toEqual({ creditsBalance: 30, revoked: false });
+  });
+
+  it("reports a revoked code as revoked", async () => {
+    const [row] = await testDb.db
+      .insert(accessCodes)
+      .values({ codeHash: hashAccessCode("x"), label: "Test", creditsBalance: 30, revokedAt: new Date() })
+      .returning();
+
+    expect(await getAccessCodeStatus(testDb.db, row.id)).toEqual({ creditsBalance: 30, revoked: true });
+  });
+
+  it("returns null for an id that doesn't exist", async () => {
+    expect(await getAccessCodeStatus(testDb.db, "00000000-0000-0000-0000-000000000000")).toBeNull();
   });
 });

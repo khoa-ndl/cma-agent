@@ -21,6 +21,16 @@ export function createSampleDataProvider(db: Database): DataProvider {
           unparsedAddress: property.unparsedAddress,
           city: property.city,
           mlsAreaMajor: property.mlsAreaMajor,
+          latitude: property.latitude,
+          longitude: property.longitude,
+          propertySubType: property.propertySubType,
+          bedroomsTotal: property.bedroomsTotal,
+          bathroomsTotalInteger: property.bathroomsTotalInteger,
+          livingArea: property.livingArea,
+          lotSizeSquareFeet: property.lotSizeSquareFeet,
+          yearBuilt: property.yearBuilt,
+          garageSpaces: property.garageSpaces,
+          propertyCondition: property.propertyCondition,
         })
         .from(property)
         .where(ilike(property.unparsedAddress, `${escaped}%`))

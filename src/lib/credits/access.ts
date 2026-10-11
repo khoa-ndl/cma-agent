@@ -103,3 +103,17 @@ export async function checkAccessCode(
   if (record.revokedAt) return { ok: false, reason: "revoked" };
   return { ok: true, accessCodeId: record.id, creditsBalance: record.creditsBalance };
 }
+
+export interface AccessCodeStatus {
+  creditsBalance: number;
+  revoked: boolean;
+}
+
+/** For pages that already trust a session's accessCodeId and just need
+ * the current balance to display (spec 5 screen 2: "N reports
+ * remaining") — no rate limiting, since this isn't a code guess. */
+export async function getAccessCodeStatus(db: Database, accessCodeId: string): Promise<AccessCodeStatus | null> {
+  const [record] = await db.select().from(accessCodes).where(eq(accessCodes.id, accessCodeId)).limit(1);
+  if (!record) return null;
+  return { creditsBalance: record.creditsBalance, revoked: record.revokedAt !== null };
+}

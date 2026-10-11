@@ -6,6 +6,23 @@ import { eq } from "drizzle-orm";
 import type { PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { Database } from "@/lib/db/client";
 import { reports } from "@/lib/db/schema";
+import type { CmaResult } from "@/lib/agent/tools";
+
+/** The success-case body shape, reused by the UI so the Server
+ * Component's initial fetch and the client's polling fallback agree on
+ * one type. */
+export interface ReportBody {
+  id: string;
+  status: "running" | "succeeded" | "failed";
+  subject: unknown;
+  result: CmaResult | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  cacheReadTokens: number | null;
+  costUsd: string | null;
+  createdAt: Date;
+  finishedAt: Date | null;
+}
 
 export interface ReportStatusResult {
   status: number;
@@ -26,19 +43,17 @@ export async function getReport<TQueryResult extends PgQueryResultHKT>(
     return { status: 404, body: { reason: "not_found" } };
   }
 
-  return {
-    status: 200,
-    body: {
-      id: row.id,
-      status: row.status,
-      subject: row.subject,
-      result: row.result,
-      inputTokens: row.inputTokens,
-      outputTokens: row.outputTokens,
-      cacheReadTokens: row.cacheReadTokens,
-      costUsd: row.costUsd,
-      createdAt: row.createdAt,
-      finishedAt: row.finishedAt,
-    },
+  const body: ReportBody = {
+    id: row.id,
+    status: row.status,
+    subject: row.subject,
+    result: row.result as CmaResult | null,
+    inputTokens: row.inputTokens,
+    outputTokens: row.outputTokens,
+    cacheReadTokens: row.cacheReadTokens,
+    costUsd: row.costUsd,
+    createdAt: row.createdAt,
+    finishedAt: row.finishedAt,
   };
+  return { status: 200, body };
 }
