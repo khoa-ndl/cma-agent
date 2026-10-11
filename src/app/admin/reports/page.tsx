@@ -4,8 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getDb } from "@/lib/db/client";
 import { listAllReports, type AdminReportListItem } from "@/app/api/admin/reports/logic";
-import { ADMIN_SESSION_COOKIE_NAME, resolveAdminSession } from "../../api/_lib/admin-session";
-import { requireSessionSecret } from "../../api/_lib/session";
+import { isAdminSession } from "../../api/_lib/admin-session";
 
 export const instant = false;
 
@@ -17,8 +16,7 @@ const STATUS_LABEL: Record<AdminReportListItem["status"], string> = {
 
 export default async function AdminReportsPage() {
   await connection();
-  const cookieStore = await cookies();
-  const isAdmin = resolveAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE_NAME)?.value, requireSessionSecret());
+  const isAdmin = isAdminSession(await cookies());
   if (!isAdmin) {
     redirect("/admin");
   }

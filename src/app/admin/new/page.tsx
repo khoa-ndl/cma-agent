@@ -1,16 +1,14 @@
 import { connection } from "next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ADMIN_SESSION_COOKIE_NAME, resolveAdminSession } from "../../api/_lib/admin-session";
-import { requireSessionSecret } from "../../api/_lib/session";
+import { isAdminSession } from "../../api/_lib/admin-session";
 import { NewCmaForm } from "../../_components/NewCmaForm";
 
 export const instant = false;
 
 export default async function AdminNewCmaPage() {
   await connection();
-  const cookieStore = await cookies();
-  const isAdmin = resolveAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE_NAME)?.value, requireSessionSecret());
+  const isAdmin = isAdminSession(await cookies());
   if (!isAdmin) {
     redirect("/admin");
   }

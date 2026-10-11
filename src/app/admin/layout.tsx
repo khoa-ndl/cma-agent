@@ -1,8 +1,7 @@
 import { connection } from "next/server";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { ADMIN_SESSION_COOKIE_NAME, resolveAdminSession } from "../api/_lib/admin-session";
-import { requireSessionSecret } from "../api/_lib/session";
+import { isAdminSession } from "../api/_lib/admin-session";
 import { LogoutButton } from "../_components/LogoutButton";
 
 const NAV_ITEMS = [
@@ -19,8 +18,7 @@ export const instant = false;
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   await connection();
-  const cookieStore = await cookies();
-  const isAdmin = resolveAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE_NAME)?.value, requireSessionSecret());
+  const isAdmin = isAdminSession(await cookies());
 
   if (!isAdmin) {
     return <>{children}</>;
