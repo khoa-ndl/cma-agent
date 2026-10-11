@@ -22,3 +22,9 @@ export async function POST(request: NextRequest) {
   }
   return response;
 }
+
+export async function DELETE() {
+  const response = NextResponse.json({ ok: true });
+  response.cookies.delete(SESSION_COOKIE_NAME);
+  return response;
+}

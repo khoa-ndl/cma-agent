@@ -1,0 +1,21 @@
+// Route-layer wrapper around lib/admin/session.ts, mirroring _lib/session.ts's
+// split: this file knows about cookies and env vars, lib/admin/session.ts
+// stays framework-agnostic.
+import { verifyAdminSessionToken } from "@/lib/admin/session";
+
+export const ADMIN_SESSION_COOKIE_NAME = "cma_admin_session";
+
+export function resolveAdminSession(cookieValue: string | undefined, secret: string): boolean {
+  if (!cookieValue) return false;
+  return verifyAdminSessionToken(cookieValue, secret) !== null;
+}
+
+/** Every /api/admin/* route needs this; thrown early and loudly rather
+ * than comparing against `undefined` if the environment is misconfigured. */
+export function requireAdminPassword(): string {
+  const password = process.env.ADMIN_PASSWORD;
+  if (!password) {
+    throw new Error("ADMIN_PASSWORD is not set. Copy .env.example to .env and fill in a value.");
+  }
+  return password;
+}
