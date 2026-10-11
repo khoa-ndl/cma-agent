@@ -76,25 +76,27 @@ Each step: write tests first and confirm they fail, implement until they pass, r
 - **Found while implementing:** drizzle-orm wraps the driver's unique-violation error in a `DrizzleQueryError`, with the real Postgres error (the one carrying `.code === "23505"`) nested in `.cause`, not at the top level. The first version's `catch` block checked the wrong level and let the error through uncaught; confirmed against the actual thrown error, fixed to check both.
 - **Proof:** sentinel created once and reused, including under genuine `Promise.all` concurrency; operator report never changes any other code's balance (D6); no ledger row; concurrent operator reports settle to exactly one `already_running` (same proof pattern as the existing A9 concurrent-reservation test); each new `access.ts` function covered. 195 tests.
 
-### Step P8: Admin reports routes
-- [ ] New `app/api/admin/reports/logic.ts` + `route.ts`: `listAllReports` (unscoped, sentinel labeled "Operator", capped at 200), `handleCreateOperatorReport`/`streamOperatorReport` (SSE, same shape as `/api/reports`).
-- [ ] New `app/api/admin/reports/[id]/logic.ts` + `route.ts`, and `.../pdf/logic.ts` + `route.ts`.
-- **Proof:** unauthenticated 401 on every route; operator POST streams and persists correctly with no change to any customer balance; list shows both operator and customer reports correctly labeled; row cap; status/PDF mirror the existing report routes minus ownership scoping.
+### Step P8: Admin reports routes — done (51671fa)
+- [x] New `app/api/admin/reports/logic.ts` + `route.ts`: `listAllReports` (unscoped, sentinel labeled "Operator", capped at 200), `handleCreateOperatorReport`/`streamOperatorReport` (SSE, same shape as `/api/reports`).
+- [x] New `app/api/admin/reports/[id]/logic.ts` + `route.ts`, and `.../pdf/logic.ts` + `route.ts`.
+- **Proof:** unauthenticated 401 on every route; operator POST streams and persists correctly with no change to any customer balance; list shows both operator and customer reports correctly labeled; row cap; status/PDF mirror the existing report routes minus ownership scoping. 209 tests.
 
-### Step P9: Admin codes routes
-- [ ] New `app/api/admin/codes/logic.ts` + `route.ts`: list, issue.
-- [ ] New `app/api/admin/codes/[id]/revoke/logic.ts` + `route.ts`.
-- **Proof:** unauthenticated 401; list excludes the sentinel (D5); issuing works end to end with a real login (D3); revoking blocks a new report and a stale session (D4).
+### Step P9: Admin codes routes — done (27fa599)
+- [x] New `app/api/admin/codes/logic.ts` + `route.ts`: list, issue.
+- [x] New `app/api/admin/codes/[id]/revoke/logic.ts` + `route.ts`.
+- **Proof:** unauthenticated 401; list excludes the sentinel (D5); issuing works end to end with a real login (D3); revoking blocks a new report and a stale session (D4). 216 tests.
 
-### Step P10: Admin overview route
-- [ ] New `app/api/admin/overview/logic.ts` + `route.ts`: health, stuck-running reports (using `STALE_RUN_MINUTES` from P1), monthly spend across all reports including the operator sentinel (D7), low-balance customer codes.
-- **Proof:** unauthenticated 401; stuck report appears with age + code label; spend sums customer + operator together; low-balance list excludes the sentinel.
+### Step P10: Admin overview route — done (d6a98e4)
+- [x] New `app/api/admin/overview/logic.ts` + `route.ts`: health, stuck-running reports (using `STALE_RUN_MINUTES` from P1), monthly spend across all reports including the operator sentinel (D7), low-balance customer codes.
+- **Proof:** unauthenticated 401; stuck report appears with age + code label; spend sums customer + operator together; low-balance list excludes the sentinel. 222 tests.
 
-### Step P11: Admin UI
-- [ ] New `AdminLoginForm.tsx`; modified `NewCmaForm.tsx` (`endpoint`/`resultBasePath`/`unmetered` props), `ReportView.tsx` (`pdfHref` prop).
-- [ ] New `app/admin/layout.tsx` (sidebar, authenticated-only) and pages: `page.tsx`, `codes/page.tsx`, `reports/page.tsx`, `new/page.tsx`, `reports/[id]/page.tsx`.
-- [ ] `app/cma/layout.tsx` gains a "Log out" nav item.
-- **Proof:** no new unit tests (Server Component pages aren't unit-tested in this codebase, same precedent as `/cma/*`). `next build` succeeds. Full Playwright walkthrough: wrong password rejected + rate-limited; correct password reaches Overview; issue a code, log in as that end user; revoke it, confirm the end-user session is bounced; generate an operator CMA, confirm its PDF and zero balance impact; Overview reflects the spend; both logout buttons work; session cookie visibly refreshes on activity and expires after ~90 idle minutes (verified via a shortened constant or a pre-expired token, not a real 90-minute wait).
+### Step P11: Admin UI — built, manual walkthrough in progress
+- [x] New `AdminLoginForm.tsx`, `LogoutButton.tsx`; modified `NewCmaForm.tsx` (`endpoint`/`resultBasePath`/`unmetered` props), `ReportView.tsx` (`apiBasePath` prop, not `pdfHref` as first sketched — one prop covers both the PDF link and the status-poll URL, since both are the same report's admin-vs-customer route prefix).
+- [x] New `app/admin/layout.tsx` (sidebar, authenticated-only) and pages: `page.tsx` (login+overview share one URL, per spec screen 1/2), `codes/page.tsx`, `reports/page.tsx`, `new/page.tsx`, `reports/[id]/page.tsx`. New `admin/_components/IssueCodeForm.tsx`, `RevokeCodeButton.tsx`.
+- [x] `app/cma/layout.tsx` gains a "Log out" nav item.
+- **Proof:** no new unit tests (confirmed zero React component tests exist anywhere in this codebase before adding these — same precedent as `/cma/*`). `next build` succeeds (222 tests still pass, nothing here changes logic). Playwright walkthrough in progress: first run caught a real environment-ordering bug (see below) rather than a scripting mistake; rerunning now that it's fixed.
+- **Found in the manual check:** the dev server was started before `ADMIN_PASSWORD` was added to `.env`; Next.js only loads `.env` at server boot, not per-request, so `requireAdminPassword()` was throwing on every admin login attempt regardless of password. A restart (not a code change) fixed it — flagged here since it's the kind of thing that would also bite a real deploy if `ADMIN_PASSWORD` were added to Vercel after the last deploy rather than before.
+- **Still open:** generating an operator CMA through `/admin/new` calls the real Anthropic API (same model client as the end-user path) — holding this specific check for your explicit go-ahead, same as `test:live`.
 
 ### Step P12: End-user home page
 - [ ] `listReports` gains an optional `limit` parameter (default unchanged, backward compatible).
