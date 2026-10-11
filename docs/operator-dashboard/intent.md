@@ -28,6 +28,8 @@ A password-protected `/admin` area where Khoa can, without touching a terminal:
 
 A second, related piece: the **end-user experience** gets a real landing page. Today, logging in goes straight to the New CMA form with no overview. Add a home view (reachable from the existing sidebar) showing: credit balance prominently, a summary of recent reports, and a clear "Start new CMA" action — giving end users the same "see everything at a glance" benefit the operator dashboard is being built for, not just the operator.
 
+A third piece, found while planning the admin session system: sessions — both admin and end user — currently never expire in any practical sense (30 days, no logout at all). Add a ~90-minute **idle** timeout (resets on activity, not a fixed lifetime) for both session types, plus a manual logout action for both. This changes existing end-user session behavior, not just new admin scope — flagged here so it's visible before `spec.md`/`plan.md` lock it in.
+
 ## Who and what it affects
 
 - **Khoa**, as the sole operator — the only person who will ever use this. No multi-operator or role concept needed.

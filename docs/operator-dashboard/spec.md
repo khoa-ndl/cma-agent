@@ -15,6 +15,7 @@
 | Revoking a code | One-way. No "un-revoke." | Matches Release 1's lean, no-self-service posture (spec 8's existing design intent) — issuing a fresh code is one action away, and avoids a reactivation flow nobody asked for. **Flagged for your confirmation in §11.** |
 | End-user home page | New page at `/cma` (the bare `/cma/*` index) — balance, 5 most recent reports, a "Start new CMA" action. `/` now redirects a signed-in session to `/cma` instead of `/cma/new`. | `/cma/new` keeps its own URL and behavior unchanged; `/cma` becomes the natural post-login landing spot, consistent with how `/cma/new` and `/cma/reports` are already named |
 | Admin CMA generation | Reuses the existing `NewCmaForm`/SSE/`ReportDocument` machinery end to end — same component, different data-fetch path for credits (admin has none to check) and a different POST target | No new PDF or agent-loop code; only the reservation step differs |
+| Session timeout | Both admin and end-user sessions get a ~90-minute **idle** timeout (not a fixed lifetime) via a `proxy.ts` file (Next.js 16's renamed `middleware.ts`) that reissues a still-valid session cookie with a fresh `issuedAt` on every matched request; an already-expired or missing cookie is left untouched. Both session types also get a manual logout (clears the cookie immediately). | Server Components can't set cookies, only Route Handlers and Proxy can — so "idle" (resets on page views, not just API calls) requires intercepting every request. Replaces the current 30-day fixed expiry with no logout at all, which was never a deliberate security decision, just what Release 1 needed to ship. |
 
 ## 2. Architecture
 
@@ -43,6 +44,8 @@ One behavioral rule, enforced in query code, not the schema:
 
 - A row in `access_codes` with `label = '__operator__'` is the single reserved system code for unmetered operator reports. Every customer-facing query (the end-user's own `listReports`, the admin's codes list, the admin's "all reports" list's cost-per-customer breakdown) excludes it; the admin's "all reports" list and the health screen's monthly-spend total **include** it, since real API cost was still incurred.
 - Created lazily: the first operator-generated report looks for this code, creates it with a placeholder hash and `credits_balance = 0` if missing, and skips the balance check entirely for this one code's reports (the whole point is it's never charged).
+
+No new table for session timeout — it's cookie-refresh logic, not server-side session storage. The existing signed-cookie approach (`lib/credits/session.ts`) stays; only its expiry length changes (30 days → 90 minutes) and a `proxy.ts` file is added to slide that expiry forward on activity.
 
 ## 4. Screens
 
@@ -82,6 +85,8 @@ Disclosures (spec.md §5's "Sample data, not real listings" / "For demonstration
 | D8 | The end-user home page shows the real current balance and real recent reports, not stale/cached data | Reuses `getAccessCodeStatus` and `listReports` directly — same proof pattern as `/cma/new` and `/cma/reports` already use |
 | D9 | Every `/admin/*` page and API route rejects a request with no admin session, or an end-user session, with 401 | Route tests, one per endpoint, consistent with the existing reports/addresses route test pattern |
 | D10 | 10 failed admin login attempts from one IP within 15 minutes blocks an 11th, independent of end-user access-code rate limiting | Reuses the `isRateLimited` test pattern from `access.test.ts`, against the new table |
+| D11 | A session cookie (admin or end user) is reissued with a fresh expiry on activity, and a session left untouched for ~90 minutes is no longer valid | Manual/Playwright check (no stable unit-test seam for `proxy.ts` yet) — inspects the `Set-Cookie` header after a request, and a deliberately-expired token is rejected |
+| D12 | A manual logout (admin or end user) clears that session's cookie immediately — the next request isn't authenticated | Route test: `DELETE` on the session route, then a follow-up request with the same (now-cleared) cookie is rejected |
 
 ## 7. Concerns for review
 

@@ -211,6 +211,7 @@ Every screen and every PDF page shows: "Sample data, not real listings" and "For
 
 - Secrets (`ANTHROPIC_API_KEY`, `DATABASE_URL`, session secret) are stored in environment variables, never in code. A `.env.example` lists the names.
 - Access codes are random, high-entropy, stored hashed, revocable, and checked with rate limiting.
+- **Session length (updated by the operator-dashboard feature):** the session cookie's expiry changed from a fixed 30 days to a ~90-minute idle timeout (resets on activity, manual logout also available). See [operator-dashboard/spec.md](operator-dashboard/spec.md) for the mechanism (`proxy.ts`) and rationale.
 - All database reads and writes go through server route handlers. The database is not exposed to the browser, and the application connects with a role limited to the tables it needs.
 - User input to the model is limited to structured property facts with validated types and ranges. No free text in Release 1, which limits prompt-injection surface.
 - No personal data is collected in Release 1 beyond the operator's label on each code.
