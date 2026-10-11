@@ -1,0 +1,38 @@
+// The single interface the agent and UI use to read property data (spec 2).
+// SampleDataProvider (this release) and a future ResoWebApiProvider (a live
+// MLS feed) both implement this; nothing else in the app queries the
+// property table directly.
+import type { property } from "@/lib/db/schema";
+
+export type Property = typeof property.$inferSelect;
+
+export interface AddressMatch {
+  listingKey: string;
+  unparsedAddress: string;
+  city: string;
+  mlsAreaMajor: string;
+}
+
+export interface ListingCriteria {
+  statuses?: Property["standardStatus"][];
+  mlsAreaMajor?: string;
+  propertySubType?: Property["propertySubType"];
+  minLivingArea?: number;
+  maxLivingArea?: number;
+  /**
+   * Only Closed listings with closeDate on or after this ISO date.
+   * Active/Pending listings have no closeDate, so this filter excludes
+   * them too — combine criteria in separate calls if a comp search needs
+   * both recent closed sales and current listings (Step 5's job, not this
+   * interface's).
+   */
+  closedAfter?: string;
+  excludeListingKey?: string;
+  limit?: number;
+}
+
+export interface DataProvider {
+  searchAddresses(query: string, limit: number): Promise<AddressMatch[]>;
+  getProperty(listingKey: string): Promise<Property | null>;
+  searchListings(criteria: ListingCriteria): Promise<Property[]>;
+}

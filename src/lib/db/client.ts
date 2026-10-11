@@ -7,10 +7,19 @@
 // serverless functions"). It has no real multi-statement transactions, which
 // is why Step 6's credit reservation is one atomic SQL statement instead.
 import { neon } from "@neondatabase/serverless";
-import { drizzle, type NeonHttpDatabase } from "drizzle-orm/neon-http";
+import { drizzle } from "drizzle-orm/neon-http";
+import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "./schema";
 
-export type Database = NeonHttpDatabase<typeof schema>;
+// Generic over the driver's query-result type, not tied to Neon's — a
+// PGlite instance in tests, and any other Postgres driver, structurally
+// satisfy this too (portability rule 2). A function that takes a plain
+// `Database` can only run against Neon; one generic over PgQueryResultHKT
+// runs against whatever Postgres driver its caller passes in.
+export type Database<TQueryResult extends PgQueryResultHKT = PgQueryResultHKT> = PgDatabase<
+  TQueryResult,
+  typeof schema
+>;
 
 let db: Database | undefined;
 
