@@ -12,13 +12,22 @@ import { refreshSessionCookies } from "./app/api/_lib/proxy-logic";
 
 export function proxy(request: NextRequest) {
   const secret = requireSessionSecret();
-  const refreshed = refreshSessionCookies(
-    {
-      session: request.cookies.get(SESSION_COOKIE_NAME)?.value,
-      admin: request.cookies.get(ADMIN_SESSION_COOKIE_NAME)?.value,
-    },
-    secret,
-  );
+  // DELETE here always means "log out" (the only DELETE handlers in this
+  // app are the two logout routes). Refreshing the cookie here would race
+  // the route's own delete with no guaranteed ordering between the two
+  // Set-Cookie headers -- confirmed live: without this check, a real
+  // logout request came back with both a fresh, still-valid cookie from
+  // here and an expired one from the route, in the same response (D12).
+  const isLogoutRequest = request.method === "DELETE";
+  const refreshed = isLogoutRequest
+    ? {}
+    : refreshSessionCookies(
+        {
+          session: request.cookies.get(SESSION_COOKIE_NAME)?.value,
+          admin: request.cookies.get(ADMIN_SESSION_COOKIE_NAME)?.value,
+        },
+        secret,
+      );
 
   const response = NextResponse.next();
   const cookieOptions = {
