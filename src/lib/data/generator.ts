@@ -8,7 +8,9 @@ import type { GeneratedProperty } from "./property-schema";
 const SEED = 20261010;
 // Generation is pinned to a fixed date, not the real clock: re-running the
 // generator next month must still produce byte-identical output (A1).
-const GENERATED_AS_OF = new Date("2026-10-10T00:00:00Z");
+// Exported so tests against the full seed dataset (e.g. Step 5's A2 test)
+// can align their own "as of" date with where the generated closes sit.
+export const GENERATED_AS_OF = new Date("2026-10-10T00:00:00Z");
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Deterministic PRNG (mulberry32) — same seed, same sequence, forever. */
