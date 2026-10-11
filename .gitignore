@@ -8,16 +8,22 @@ node_modules/
 .next/
 dist/
 out/
+build/
 coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs and keys
+npm-debug.log*
+*.pem
 
 # OS / editor
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
 
-# Vercel / Supabase local state
+# Vercel local state
 .vercel
-supabase/.temp/
 
 # Generated reports
 *.pdf

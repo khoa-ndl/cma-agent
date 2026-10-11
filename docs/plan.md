@@ -51,9 +51,9 @@ Each step: write tests first and confirm they fail, implement until they pass, r
 - [x] Save as `docs/plan.md` with status "Approved"; commit.
 
 ### Step 1: Project scaffold
-- [ ] `create-next-app` (TypeScript, App Router, Tailwind, ESLint, `src/`), then add vitest, tsx, zod.
-- [ ] Scripts: `npm test` (type check + lint + vitest, fails on any error), `npm run test:live` (paid API tests only), `db:generate`, `db:migrate`, `db:seed`, `data:generate`, `codes:issue`.
-- [ ] `.env.example` (`ANTHROPIC_API_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `ANTHROPIC_MODEL`), `README.md`, project `CLAUDE.md` with commands and conventions.
+- [x] `create-next-app` (TypeScript, App Router, Tailwind, ESLint, `src/`), then add vitest, tsx, zod.
+- [x] Scripts: `npm test` (type check + lint + vitest, fails on any error) and `npm run test:live` (paid API tests only). The type check runs `next typegen` first, because Next.js 16 generates its route type helpers. **Change:** `db:generate`, `db:migrate`, `db:seed`, `data:generate` and `codes:issue` are added in the steps that create their scripts, so no command points to a missing file.
+- [x] `.env.example` (`ANTHROPIC_API_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `ANTHROPIC_MODEL`), `README.md`, project `CLAUDE.md` with commands and conventions.
 - **Proof:** `npm test` runs and passes on a placeholder test; `npm run build` succeeds.
 - **Leaner option considered:** no ESLint. Kept, since it ships with `create-next-app` at no extra cost.
 
