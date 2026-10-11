@@ -1,0 +1,33 @@
+// The only file that imports a database driver (spec 2.1, portability rule
+// 2). Swapping the database host is a change to DATABASE_URL and, at most,
+// this file; schema.ts and every caller stay the same.
+//
+// Uses Neon's HTTP driver: one request per query, no connection pool to
+// manage between serverless invocations (spec 7, "designed for short-lived
+// serverless functions"). It has no real multi-statement transactions, which
+// is why Step 6's credit reservation is one atomic SQL statement instead.
+import { neon } from "@neondatabase/serverless";
+import { drizzle, type NeonHttpDatabase } from "drizzle-orm/neon-http";
+import * as schema from "./schema";
+
+export type Database = NeonHttpDatabase<typeof schema>;
+
+let db: Database | undefined;
+
+/**
+ * Creates the connection on first use rather than at import time, so
+ * importing this module (e.g. during `next build`, before DATABASE_URL is
+ * set) never fails. Tests never call this — they use tests/helpers/db.ts.
+ */
+export function getDb(): Database {
+  if (!db) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error(
+        "DATABASE_URL is not set. Copy .env.example to .env and fill in a connection string.",
+      );
+    }
+    db = drizzle(neon(connectionString), { schema });
+  }
+  return db;
+}
