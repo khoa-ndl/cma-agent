@@ -145,7 +145,7 @@ export async function listReports<TQueryResult extends PgQueryResultHKT>(
     .from(reports)
     .where(eq(reports.accessCodeId, accessCodeId))
     .orderBy(desc(reports.createdAt))
-    .limit(limit);
+    .limit(Math.min(limit, MAX_LISTED_REPORTS));
 
   const items: ReportListItem[] = rows.map((row) => {
     const subject = row.subject as { unparsedAddress?: string; mlsAreaMajor?: string } | null;

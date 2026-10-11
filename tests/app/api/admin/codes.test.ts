@@ -65,6 +65,17 @@ describe("handleIssueCode", () => {
     expect(loginResult.ok).toBe(true);
     expect(loginResult.creditsBalance).toBe(45);
   });
+
+  // Found in review: nothing stopped an admin from issuing a real,
+  // metered code labeled exactly "__operator__" -- which would then
+  // silently vanish from every customer-facing list (they all exclude
+  // that one label) and have its real reports mislabeled "Operator"
+  // in cost tracking, breaking the "appears in exactly two places"
+  // invariant plan.md's own risk table assumes.
+  it("rejects the reserved sentinel label", async () => {
+    const result = await handleIssueCode(testDb.db, { label: OPERATOR_CODE_LABEL, credits: 45 }, true);
+    expect(result.status).toBe(400);
+  });
 });
 
 describe("handleRevokeCode", () => {

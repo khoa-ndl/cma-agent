@@ -13,10 +13,12 @@ export function ReportView({
   reportId,
   initial,
   apiBasePath = "/api/reports",
+  unmetered = false,
 }: {
   reportId: string;
   initial: ReportBody;
   apiBasePath?: string;
+  unmetered?: boolean;
 }) {
   const [report, setReport] = useState(initial);
 
@@ -39,7 +41,9 @@ export function ReportView({
       <div className="flex max-w-md flex-col gap-2 text-center">
         <h1 className="text-xl font-semibold text-(--color-foreground)">This report didn&apos;t complete</h1>
         <p className="text-(--color-muted-foreground)">
-          Something went wrong partway through. Your credits were refunded — you can start a new report.
+          {unmetered
+            ? "Something went wrong partway through. You can start a new report."
+            : "Something went wrong partway through. Your credits were refunded — you can start a new report."}
         </p>
       </div>
     );

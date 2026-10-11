@@ -4,7 +4,7 @@
 import { z } from "zod";
 import type { PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { Database } from "@/lib/db/client";
-import { issueAccessCode, listCustomerAccessCodes, type CustomerAccessCode } from "@/lib/credits/access";
+import { issueAccessCode, listCustomerAccessCodes, OPERATOR_CODE_LABEL, type CustomerAccessCode } from "@/lib/credits/access";
 
 export interface AdminCodesResult {
   status: number;
@@ -23,8 +23,13 @@ export async function listAdminCodes<TQueryResult extends PgQueryResultHKT>(
   return { status: 200, body: { codes } };
 }
 
+// Found in review: nothing stopped an admin from issuing a real,
+// metered code labeled exactly "__operator__" -- it would then
+// silently vanish from every customer-facing list (they all exclude
+// that one label) and have its real reports mislabeled "Operator" in
+// cost tracking.
 const issueRequestSchema = z.object({
-  label: z.string().min(1).max(200),
+  label: z.string().min(1).max(200).refine((label) => label !== OPERATOR_CODE_LABEL, "reserved label"),
   credits: z.number().int().nonnegative(),
 });
 

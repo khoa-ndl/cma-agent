@@ -83,4 +83,19 @@ describe("listReports", () => {
     expect(body.reports).toHaveLength(2);
     expect(body.reports[0].mlsAreaMajor).toBe("Capitol Hill"); // newest first
   });
+
+  // Found in review: the 100-row ceiling (MAX_LISTED_REPORTS) used to
+  // be unconditional; adding an optional `limit` parameter for the
+  // home page's 5-item preview accidentally dropped it from being an
+  // enforced maximum down to just a default. A future caller passing
+  // a large caller-supplied limit must still be capped.
+  it("never returns more than the hard ceiling, even if a larger limit is requested", async () => {
+    for (let i = 0; i < 101; i++) {
+      await testDb.db.insert(reports).values({ accessCodeId: CODE_A, status: "succeeded", subject: {} });
+    }
+
+    const result = await listReports(testDb.db, CODE_A, 99_999);
+    const body = result.body as { reports: unknown[] };
+    expect(body.reports).toHaveLength(100);
+  });
 });
