@@ -1,7 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../helpers/db";
 import { accessCodes } from "@/lib/db/schema";
-import { checkAccessCode, generateAccessCode, getAccessCodeStatus, hashAccessCode } from "@/lib/credits/access";
+import {
+  checkAccessCode,
+  generateAccessCode,
+  getAccessCodeStatus,
+  hashAccessCode,
+  issueAccessCode,
+  listCustomerAccessCodes,
+  OPERATOR_CODE_LABEL,
+  revokeAccessCode,
+} from "@/lib/credits/access";
 
 describe("generateAccessCode / hashAccessCode", () => {
   it("generates unique, dash-grouped codes", () => {
@@ -124,5 +133,74 @@ describe("getAccessCodeStatus", () => {
 
   it("returns null for an id that doesn't exist", async () => {
     expect(await getAccessCodeStatus(testDb.db, "00000000-0000-0000-0000-000000000000")).toBeNull();
+  });
+});
+
+describe("issueAccessCode", () => {
+  let testDb: TestDb;
+
+  beforeEach(async () => {
+    testDb = await createTestDb();
+  });
+
+  afterEach(async () => {
+    await testDb.close();
+  });
+
+  it("creates a working code, the same way the CLI script does (D3)", async () => {
+    const { code } = await issueAccessCode(testDb.db, "Jane", 45);
+    const result = await checkAccessCode(testDb.db, code, "198.51.100.1");
+    expect(result.ok).toBe(true);
+    expect(result.creditsBalance).toBe(45);
+  });
+});
+
+describe("revokeAccessCode", () => {
+  let testDb: TestDb;
+
+  beforeEach(async () => {
+    testDb = await createTestDb();
+  });
+
+  afterEach(async () => {
+    await testDb.close();
+  });
+
+  it("blocks the code from a new report (D4)", async () => {
+    const { code, accessCodeId } = await issueAccessCode(testDb.db, "Jane", 45);
+    await revokeAccessCode(testDb.db, accessCodeId);
+
+    const result = await checkAccessCode(testDb.db, code, "198.51.100.2");
+    expect(result).toEqual({ ok: false, reason: "revoked" });
+  });
+});
+
+describe("listCustomerAccessCodes", () => {
+  let testDb: TestDb;
+
+  beforeEach(async () => {
+    testDb = await createTestDb();
+  });
+
+  afterEach(async () => {
+    await testDb.close();
+  });
+
+  it("lists issued codes", async () => {
+    await issueAccessCode(testDb.db, "Jane", 45);
+    await issueAccessCode(testDb.db, "John", 20);
+
+    const codes = await listCustomerAccessCodes(testDb.db);
+    expect(codes.map((c) => c.label).sort()).toEqual(["Jane", "John"]);
+  });
+
+  it("never includes the operator sentinel (D5)", async () => {
+    await testDb.db
+      .insert(accessCodes)
+      .values({ codeHash: hashAccessCode("sentinel"), label: OPERATOR_CODE_LABEL, creditsBalance: 0 });
+    await issueAccessCode(testDb.db, "Jane", 45);
+
+    const codes = await listCustomerAccessCodes(testDb.db);
+    expect(codes.map((c) => c.label)).toEqual(["Jane"]);
   });
 });

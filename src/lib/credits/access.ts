@@ -3,9 +3,14 @@
 // code has no low-entropy guesses to resist, so a slow password-hashing
 // algorithm (bcrypt/argon2) would add a dependency for no real benefit.
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, gte } from "drizzle-orm";
+import { and, desc, eq, gte, ne } from "drizzle-orm";
 import type { Database } from "@/lib/db/client";
 import { accessAttempts, accessCodes } from "@/lib/db/schema";
+
+// The reserved system code for unmetered operator reports
+// (operator-dashboard spec.md §3) -- excluded from every customer-facing
+// query below, and from lib/credits/operator.ts's own queries.
+export const OPERATOR_CODE_LABEL = "__operator__";
 
 const CODE_BYTES = 16; // 128 bits of entropy
 const GROUP_SIZE = 4;
@@ -118,4 +123,54 @@ export async function getAccessCodeStatus(db: Database, accessCodeId: string): P
   const [record] = await db.select().from(accessCodes).where(eq(accessCodes.id, accessCodeId)).limit(1);
   if (!record) return null;
   return { creditsBalance: record.creditsBalance, revoked: record.revokedAt !== null };
+}
+
+/** Issues a new code (operator-dashboard spec.md §4 screen 3) — same
+ * shape as scripts/issue-code.ts, reused instead of duplicated so the
+ * admin UI and the CLI script produce identical codes. */
+export async function issueAccessCode(
+  db: Database,
+  label: string,
+  credits: number,
+): Promise<{ code: string; accessCodeId: string }> {
+  const code = generateAccessCode();
+  const [created] = await db
+    .insert(accessCodes)
+    .values({ codeHash: hashAccessCode(code), label, creditsBalance: credits })
+    .returning({ id: accessCodes.id });
+  return { code, accessCodeId: created.id };
+}
+
+/** One-way revocation (operator-dashboard spec.md, Decisions: "no
+ * un-revoke") — checkAccessCode and reserveCredits already treat a
+ * revoked code as blocked; this is the first thing that can set it. */
+export async function revokeAccessCode(db: Database, accessCodeId: string): Promise<void> {
+  await db.update(accessCodes).set({ revokedAt: new Date() }).where(eq(accessCodes.id, accessCodeId));
+}
+
+export interface CustomerAccessCode {
+  id: string;
+  label: string;
+  creditsBalance: number;
+  revokedAt: Date | null;
+  createdAt: Date;
+}
+
+/** Every issued code except the operator sentinel (D5) — the admin
+ * codes screen and any other customer-facing list should call this,
+ * not query access_codes directly, so the exclusion lives in one place. */
+export async function listCustomerAccessCodes(db: Database): Promise<CustomerAccessCode[]> {
+  const rows = await db
+    .select()
+    .from(accessCodes)
+    .where(ne(accessCodes.label, OPERATOR_CODE_LABEL))
+    .orderBy(desc(accessCodes.createdAt));
+
+  return rows.map((row) => ({
+    id: row.id,
+    label: row.label,
+    creditsBalance: row.creditsBalance,
+    revokedAt: row.revokedAt,
+    createdAt: row.createdAt,
+  }));
 }
