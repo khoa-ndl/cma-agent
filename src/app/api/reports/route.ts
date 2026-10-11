@@ -3,7 +3,13 @@ import { getDb } from "@/lib/db/client";
 import { createSampleDataProvider } from "@/lib/data/sample-provider";
 import { runModelTurn } from "@/lib/agent/model-client";
 import { SESSION_COOKIE_NAME, resolveAccessCodeId, requireSessionSecret } from "../_lib/session";
-import { handleCreateReport, type ReportStreamEvent } from "./logic";
+import { handleCreateReport, listReports, type ReportStreamEvent } from "./logic";
+
+export async function GET(request: NextRequest) {
+  const accessCodeId = resolveAccessCodeId(request.cookies.get(SESSION_COOKIE_NAME)?.value, requireSessionSecret());
+  const result = await listReports(getDb(), accessCodeId);
+  return NextResponse.json(result.body, { status: result.status });
+}
 
 // Vercel's function duration limit (plan.md Step 11, spec C3) isn't
 // confirmed yet, so `maxDuration` isn't set here — that's Step 11's job,

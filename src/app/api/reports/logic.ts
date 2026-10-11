@@ -4,7 +4,8 @@
 // result and usage, or failed with credits refunded (spec 6) — so A14's
 // "token usage and cost are recorded for every report" holds for a run
 // that fails as much as one that succeeds.
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
+import { z } from "zod";
 import type { PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { Database } from "@/lib/db/client";
 import type { DataProvider } from "@/lib/data/provider";
@@ -13,6 +14,11 @@ import { reserveCredits, refundCredits, type ReserveFailureReason } from "@/lib/
 import { subjectInputSchema, type Subject } from "@/lib/engine/adjustments";
 import { runCmaAgent, type AgentProgressEvent, type AgentRunOutcome } from "@/lib/agent/loop";
 import type { ModelTurn } from "@/lib/agent/model-client";
+
+// Display-only — the engine never sees this, only Subject's own facts
+// (lat/long/area/etc.) drive the analysis. Optional so older clients (or
+// a submission with no address text for some reason) still work.
+const addressSchema = z.object({ unparsedAddress: z.string().min(1).max(200).optional() });
 
 export type ReportStreamEvent = AgentProgressEvent | { type: "done"; outcome: AgentRunOutcome };
 
@@ -42,8 +48,11 @@ export async function handleCreateReport<TQueryResult extends PgQueryResultHKT>(
     return { kind: "error", status: 400, body: { reason: "invalid_subject" } };
   }
   const subject: Subject = parsed.data;
+  const addressResult = addressSchema.safeParse(body);
+  const unparsedAddress = addressResult.success ? addressResult.data.unparsedAddress : undefined;
 
-  const reserve = await reserveCredits(db, accessCodeId, subject as unknown as Record<string, unknown>);
+  const stored = unparsedAddress ? { ...subject, unparsedAddress } : subject;
+  const reserve = await reserveCredits(db, accessCodeId, stored as unknown as Record<string, unknown>);
   if (!reserve.ok) {
     return { kind: "error", status: RESERVE_FAILURE_STATUS[reserve.reason], body: { reason: reserve.reason } };
   }
@@ -97,4 +106,55 @@ async function* streamReport<TQueryResult extends PgQueryResultHKT>(
   }
 
   yield { type: "done", outcome };
+}
+
+const MAX_LISTED_REPORTS = 100;
+
+export interface ReportListItem {
+  id: string;
+  status: "running" | "succeeded" | "failed";
+  unparsedAddress: string | null;
+  mlsAreaMajor: string | null;
+  costUsd: string | null;
+  createdAt: Date;
+}
+
+export interface ReportListResult {
+  status: number;
+  body: unknown;
+}
+
+// GET /api/reports (spec 5's "Reports Generated" list): the caller's own
+// reports, newest first. unparsedAddress is display-only metadata stored
+// alongside Subject in the same jsonb column (not part of Subject itself,
+// since the engine never needs it) — null for reports created before this
+// existed, where mlsAreaMajor is the fallback label.
+export async function listReports<TQueryResult extends PgQueryResultHKT>(
+  db: Database<TQueryResult>,
+  accessCodeId: string | null,
+): Promise<ReportListResult> {
+  if (!accessCodeId) {
+    return { status: 401, body: { reason: "unauthenticated" } };
+  }
+
+  const rows = await db
+    .select()
+    .from(reports)
+    .where(eq(reports.accessCodeId, accessCodeId))
+    .orderBy(desc(reports.createdAt))
+    .limit(MAX_LISTED_REPORTS);
+
+  const items: ReportListItem[] = rows.map((row) => {
+    const subject = row.subject as { unparsedAddress?: string; mlsAreaMajor?: string } | null;
+    return {
+      id: row.id,
+      status: row.status,
+      unparsedAddress: subject?.unparsedAddress ?? null,
+      mlsAreaMajor: subject?.mlsAreaMajor ?? null,
+      costUsd: row.costUsd,
+      createdAt: row.createdAt,
+    };
+  });
+
+  return { status: 200, body: { reports: items } };
 }

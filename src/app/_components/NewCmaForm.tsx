@@ -26,6 +26,7 @@ function describe(event: ReportStreamEvent): string {
 export function NewCmaForm({ creditsBalance }: { creditsBalance: number }) {
   const router = useRouter();
   const [subject, setSubject] = useState<Subject | null>(null);
+  const [address, setAddress] = useState<string | null>(null);
   const [events, setEvents] = useState<ReportStreamEvent[]>([]);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export function NewCmaForm({ creditsBalance }: { creditsBalance: number }) {
   const canSubmit = subject !== null && creditsBalance >= 5 && !running;
 
   function handleSelect(match: AddressMatch) {
+    setAddress(match.unparsedAddress);
     setSubject({
       latitude: match.latitude,
       longitude: match.longitude,
@@ -62,7 +64,7 @@ export function NewCmaForm({ creditsBalance }: { creditsBalance: number }) {
       const response = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(subject),
+        body: JSON.stringify({ ...subject, unparsedAddress: address }),
       });
 
       if (!response.ok) {

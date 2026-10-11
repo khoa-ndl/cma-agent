@@ -165,6 +165,16 @@ You complete these steps; I provide numbered instructions:
 - [ ] With approval, run about 10 reports on the preview deploy. Record measured tokens and cost per report, update spec 7.2, and set the Anthropic spend limit and initial code allocations from measured data.
 - [ ] Tune effort and prompt if quality or cost is off target.
 
+### Feature: reports list and sidebar navigation (post-launch request)
+
+Requested directly (not a plan.md step) after noticing there was no way to get back to a finished report without its exact URL.
+
+- [x] `unparsedAddress` is now sent from `NewCmaForm` and stored alongside `Subject` in the same `reports.subject` jsonb column — display-only, not a schema migration, since the engine itself never needs it (confirmed: `streamReport` still receives the clean `Subject`, not the stored blob). Older reports (created before this) have no address; the list falls back to the area.
+- [x] `GET /api/reports`: the caller's own reports, newest first, same ownership pattern as every other reports endpoint.
+- [x] `/cma/reports`: a table of address/status/timestamp, each linking to its results page.
+- [x] A sidebar layout (`src/app/cma/layout.tsx`) wraps all of `/cma/*` (`New CMA`, `Reports Generated`, and the results page) — scoped to logged-in routes only, doesn't appear on `/`.
+- **Proof:** 10 new tests (151 total) — address storage and its fallback, ownership scoping on the list endpoint, newest-first ordering. Verified live in browser: sidebar navigation works, the list correctly shows an existing pre-feature report falling back to its area label with the right status and a formatted timestamp, no console errors.
+
 ### Step 13: Review (Stage 5)
 - [ ] `/code-review high`, `/ponytail-review`, `/simplify` (report only), `/ponytail-debt`. Merge into one Important/Nit list for your approval.
 - [ ] Review against spec acceptance criteria A1–A17; A12 (one-minute comprehension) is checked by two people unfamiliar with the product.

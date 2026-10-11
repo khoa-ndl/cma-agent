@@ -31,18 +31,23 @@ async function drain(events: AsyncGenerator<ReportStreamEvent, void>): Promise<R
   return out;
 }
 
-const SUCCEEDING_MODEL = scripted([
-  toolTurn("search_comps", { radiusMiles: 10, monthsBack: 12, sizeBandPercent: 50, statuses: ["Closed"] }),
-  toolTurn("compute_adjustments", { listingKeys: ["FX-001", "FX-002"] }),
-  toolTurn("submit_cma", {
-    selectedComps: [
-      { listingKey: "FX-001", weight: 1 },
-      { listingKey: "FX-002", weight: 2 },
-    ],
-    excludedComps: [],
-    rationale: "test",
-  }),
-]);
+// A factory, not a shared constant — scripted() models are stateful
+// (an internal turn counter), and more than one test here drains a
+// model fully via drain(result.events), so each needs its own instance.
+function succeedingModel() {
+  return scripted([
+    toolTurn("search_comps", { radiusMiles: 10, monthsBack: 12, sizeBandPercent: 50, statuses: ["Closed"] }),
+    toolTurn("compute_adjustments", { listingKeys: ["FX-001", "FX-002"] }),
+    toolTurn("submit_cma", {
+      selectedComps: [
+        { listingKey: "FX-001", weight: 1 },
+        { listingKey: "FX-002", weight: 2 },
+      ],
+      excludedComps: [],
+      rationale: "test",
+    }),
+  ]);
+}
 
 describe("handleCreateReport", () => {
   let testDb: TestDb;
@@ -59,7 +64,7 @@ describe("handleCreateReport", () => {
 
   it("rejects an unauthenticated request without touching credits", async () => {
     const provider = createSampleDataProvider(testDb.db);
-    const result = await handleCreateReport(testDb.db, provider, SUCCEEDING_MODEL, SUBJECT, null);
+    const result = await handleCreateReport(testDb.db, provider, succeedingModel(), SUBJECT, null);
     expect(result).toEqual({ kind: "error", status: 401, body: { reason: "unauthenticated" } });
 
     const [code] = await testDb.db.select().from(accessCodes).where(eq(accessCodes.id, CODE_ID));
@@ -68,7 +73,7 @@ describe("handleCreateReport", () => {
 
   it("rejects an invalid subject", async () => {
     const provider = createSampleDataProvider(testDb.db);
-    const result = await handleCreateReport(testDb.db, provider, SUCCEEDING_MODEL, { ...SUBJECT, bedroomsTotal: -1 }, CODE_ID);
+    const result = await handleCreateReport(testDb.db, provider, succeedingModel(), { ...SUBJECT, bedroomsTotal: -1 }, CODE_ID);
     expect(result.kind).toBe("error");
     if (result.kind === "error") expect(result.status).toBe(400);
   });
@@ -76,13 +81,13 @@ describe("handleCreateReport", () => {
   it("rejects when the code has too few credits", async () => {
     await testDb.db.update(accessCodes).set({ creditsBalance: 4 }).where(eq(accessCodes.id, CODE_ID));
     const provider = createSampleDataProvider(testDb.db);
-    const result = await handleCreateReport(testDb.db, provider, SUCCEEDING_MODEL, SUBJECT, CODE_ID);
+    const result = await handleCreateReport(testDb.db, provider, succeedingModel(), SUBJECT, CODE_ID);
     expect(result).toEqual({ kind: "error", status: 402, body: { reason: "insufficient_credits" } });
   });
 
   it("streams tool events in order, then a done event, and persists the result (A5, A14)", async () => {
     const provider = createSampleDataProvider(testDb.db);
-    const result = await handleCreateReport(testDb.db, provider, SUCCEEDING_MODEL, SUBJECT, CODE_ID);
+    const result = await handleCreateReport(testDb.db, provider, succeedingModel(), SUBJECT, CODE_ID);
     expect(result.kind).toBe("stream");
     if (result.kind !== "stream") throw new Error("expected a stream");
 
@@ -107,6 +112,28 @@ describe("handleCreateReport", () => {
 
     const [code] = await testDb.db.select().from(accessCodes).where(eq(accessCodes.id, CODE_ID));
     expect(code.creditsBalance).toBe(40); // reserved, never refunded on success
+  });
+
+  it("stores the submitted street address for display in the reports list", async () => {
+    const provider = createSampleDataProvider(testDb.db);
+    const result = await handleCreateReport(
+      testDb.db,
+      provider,
+      succeedingModel(),
+      { ...SUBJECT, unparsedAddress: "4200 Ballard Ave NW" },
+      CODE_ID,
+    );
+    if (result.kind !== "stream") throw new Error("expected a stream");
+    await drain(result.events);
+
+    const [row] = await testDb.db.select().from(reports).where(eq(reports.id, result.reportId));
+    expect((row.subject as { unparsedAddress?: string }).unparsedAddress).toBe("4200 Ballard Ave NW");
+  });
+
+  it("tolerates a missing address (older clients, or none selected) without failing the request", async () => {
+    const provider = createSampleDataProvider(testDb.db);
+    const result = await handleCreateReport(testDb.db, provider, succeedingModel(), SUBJECT, CODE_ID);
+    expect(result.kind).toBe("stream");
   });
 
   it("refunds credits and marks the report failed when the agent hits the turn limit (A8, A11)", async () => {
