@@ -9,7 +9,11 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "npm run typecheck && npm run lint && vitest run",
-    "test:live": "LIVE=1 vitest run"
+    "test:live": "LIVE=1 vitest run",
+    "data:generate": "tsx scripts/generate-data.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
