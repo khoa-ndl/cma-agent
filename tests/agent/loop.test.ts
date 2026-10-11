@@ -4,9 +4,10 @@ import { property } from "@/lib/db/schema";
 import { createSampleDataProvider } from "@/lib/data/sample-provider";
 import { FIXTURE_PROPERTIES } from "../fixtures/properties";
 import { runCmaAgent, type AgentProgressEvent, type AgentRunOutcome } from "@/lib/agent/loop";
-import type { ModelTurn, ModelTurnResult } from "@/lib/agent/model-client";
+import type { ModelTurn } from "@/lib/agent/model-client";
 import type { Subject } from "@/lib/engine/adjustments";
 import { computePriceRange } from "@/lib/engine/pricing";
+import { neverFinishes, scripted, textTurn, toolTurn, usage } from "../helpers/fake-model";
 
 const SUBJECT: Subject = {
   latitude: 47.67,
@@ -21,34 +22,6 @@ const SUBJECT: Subject = {
   garageSpaces: 1,
   propertyCondition: "Good",
 };
-
-function usage(inputTokens = 100, outputTokens = 50, cacheReadTokens = 0) {
-  return { inputTokens, outputTokens, cacheReadTokens };
-}
-
-function toolTurn(name: string, input: unknown, turnUsage = usage()): ModelTurnResult {
-  return { stopReason: "tool_use", content: [{ type: "tool_use", id: `call-${name}`, name, input }], usage: turnUsage };
-}
-function textTurn(text: string, turnUsage = usage()): ModelTurnResult {
-  return { stopReason: "end_turn", content: [{ type: "text", text }], usage: turnUsage };
-}
-
-/** Returns the scripted turns in order, then throws if asked for more —
- * a test bug (a scenario that needed more turns than scripted), not
- * something a real run should hit. */
-function scripted(turns: ModelTurnResult[]): ModelTurn {
-  let i = 0;
-  return async () => {
-    if (i >= turns.length) throw new Error("scripted model ran out of turns — the test scripted too few");
-    return turns[i++];
-  };
-}
-
-/** A model that never finishes — keeps calling search_comps forever. */
-function neverFinishes(): ModelTurn {
-  return async () =>
-    toolTurn("search_comps", { radiusMiles: 2, monthsBack: 12, sizeBandPercent: 20, statuses: ["Closed"] });
-}
 
 async function drain(
   gen: AsyncGenerator<AgentProgressEvent, AgentRunOutcome>,
