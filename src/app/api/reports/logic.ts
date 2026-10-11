@@ -17,8 +17,10 @@ import type { ModelTurn } from "@/lib/agent/model-client";
 
 // Display-only — the engine never sees this, only Subject's own facts
 // (lat/long/area/etc.) drive the analysis. Optional so older clients (or
-// a submission with no address text for some reason) still work.
-const addressSchema = z.object({ unparsedAddress: z.string().min(1).max(200).optional() });
+// a submission with no address text for some reason) still work. Exported
+// so the admin reports route (operator-dashboard spec.md) reuses the same
+// schema for its own operator-submitted reports.
+export const addressSchema = z.object({ unparsedAddress: z.string().min(1).max(200).optional() });
 
 export type ReportStreamEvent = AgentProgressEvent | { type: "done"; outcome: AgentRunOutcome };
 
