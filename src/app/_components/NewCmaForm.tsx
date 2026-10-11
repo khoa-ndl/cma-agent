@@ -23,7 +23,17 @@ function describe(event: ReportStreamEvent): string {
   return "Finishing up…";
 }
 
-export function NewCmaForm({ creditsBalance }: { creditsBalance: number }) {
+export function NewCmaForm({
+  creditsBalance,
+  endpoint = "/api/reports",
+  resultBasePath = "/cma",
+  unmetered = false,
+}: {
+  creditsBalance?: number;
+  endpoint?: string;
+  resultBasePath?: string;
+  unmetered?: boolean;
+}) {
   const router = useRouter();
   const [subject, setSubject] = useState<Subject | null>(null);
   const [address, setAddress] = useState<string | null>(null);
@@ -31,7 +41,7 @@ export function NewCmaForm({ creditsBalance }: { creditsBalance: number }) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = subject !== null && creditsBalance >= 5 && !running;
+  const canSubmit = subject !== null && !running && (unmetered || (creditsBalance ?? 0) >= 5);
 
   function handleSelect(match: AddressMatch) {
     setAddress(match.unparsedAddress);
@@ -61,7 +71,7 @@ export function NewCmaForm({ creditsBalance }: { creditsBalance: number }) {
     setRunning(true);
 
     try {
-      const response = await fetch("/api/reports", {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...subject, unparsedAddress: address }),
@@ -78,8 +88,8 @@ export function NewCmaForm({ creditsBalance }: { creditsBalance: number }) {
       if (reportId) {
         // Keeps this same component (and its open stream) mounted while
         // making the URL reflect the run, so a refresh lands on
-        // /cma/[id]'s own status page instead of back on this form.
-        window.history.replaceState(null, "", `/cma/${reportId}`);
+        // the results page's own status view instead of back on this form.
+        window.history.replaceState(null, "", `${resultBasePath}/${reportId}`);
       }
 
       await readSse(response, (data) => {
@@ -87,11 +97,11 @@ export function NewCmaForm({ creditsBalance }: { creditsBalance: number }) {
       });
 
       // Reaching here means the stream closed — either a normal "done"
-      // event or a dropped connection. Either way, /cma/[id] is the
-      // right place to land: it reads the persisted report directly and
-      // falls back to polling if the run is still going.
+      // event or a dropped connection. Either way, the results page is
+      // the right place to land: it reads the persisted report directly
+      // and falls back to polling if the run is still going.
       if (reportId) {
-        router.push(`/cma/${reportId}`);
+        router.push(`${resultBasePath}/${reportId}`);
       } else {
         setRunning(false);
       }
@@ -116,9 +126,11 @@ export function NewCmaForm({ creditsBalance }: { creditsBalance: number }) {
 
   return (
     <div className="flex w-full max-w-lg flex-col gap-6">
-      <p className="text-sm text-(--color-muted-foreground)">
-        {creditsBalance} report{creditsBalance === 1 ? "" : "s"} remaining
-      </p>
+      {!unmetered && (
+        <p className="text-sm text-(--color-muted-foreground)">
+          {creditsBalance} report{creditsBalance === 1 ? "" : "s"} remaining
+        </p>
+      )}
 
       <AddressAutocomplete onSelect={handleSelect} />
 
@@ -201,7 +213,9 @@ export function NewCmaForm({ creditsBalance }: { creditsBalance: number }) {
         </p>
       )}
 
-      {creditsBalance < 5 && <p className="text-sm text-(--color-destructive)">Not enough credits for a report.</p>}
+      {!unmetered && (creditsBalance ?? 0) < 5 && (
+        <p className="text-sm text-(--color-destructive)">Not enough credits for a report.</p>
+      )}
 
       <button
         type="button"

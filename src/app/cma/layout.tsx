@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LogoutButton } from "../_components/LogoutButton";
 
 const NAV_ITEMS = [
   { href: "/cma/new", label: "New CMA" },
@@ -20,6 +21,9 @@ export default function CmaLayout({ children }: LayoutProps<"/cma">) {
               </Link>
             </li>
           ))}
+          <li className="mt-4 border-t border-(--color-border) pt-4">
+            <LogoutButton endpoint="/api/access" redirectTo="/" />
+          </li>
         </ul>
       </nav>
       <div className="flex flex-1 flex-col">{children}</div>

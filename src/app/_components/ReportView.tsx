@@ -9,18 +9,26 @@ export type { ReportBody };
 
 const POLL_MS = 2500;
 
-export function ReportView({ reportId, initial }: { reportId: string; initial: ReportBody }) {
+export function ReportView({
+  reportId,
+  initial,
+  apiBasePath = "/api/reports",
+}: {
+  reportId: string;
+  initial: ReportBody;
+  apiBasePath?: string;
+}) {
   const [report, setReport] = useState(initial);
 
   useEffect(() => {
     if (report.status !== "running") return;
     const interval = setInterval(async () => {
-      const response = await fetch(`/api/reports/${reportId}`);
+      const response = await fetch(`${apiBasePath}/${reportId}`);
       if (!response.ok) return;
       setReport((await response.json()) as ReportBody);
     }, POLL_MS);
     return () => clearInterval(interval);
-  }, [report.status, reportId]);
+  }, [report.status, reportId, apiBasePath]);
 
   if (report.status === "running") {
     return <p className="text-(--color-muted-foreground)">Still working on this report…</p>;
@@ -152,7 +160,7 @@ export function ReportView({ reportId, initial }: { reportId: string; initial: R
       </section>
 
       <a
-        href={`/api/reports/${reportId}/pdf`}
+        href={`${apiBasePath}/${reportId}/pdf`}
         className="min-h-11 w-fit cursor-pointer rounded-lg border border-(--color-border) px-5 py-3 font-semibold text-(--color-foreground) transition-opacity duration-200 hover:opacity-80"
       >
         Download PDF
