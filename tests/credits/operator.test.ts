@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { createTestDb, type TestDb } from "../helpers/db";
 import { accessCodes, creditLedger, reports } from "@/lib/db/schema";
-import { generateAccessCode, hashAccessCode } from "@/lib/credits/access";
+import { checkAccessCode, generateAccessCode, hashAccessCode } from "@/lib/credits/access";
 import { createOperatorReport, ensureOperatorAccessCode, OPERATOR_CODE_LABEL } from "@/lib/credits/operator";
 
 describe("ensureOperatorAccessCode", () => {
@@ -41,6 +41,20 @@ describe("ensureOperatorAccessCode", () => {
 
     const rows = await testDb.db.select().from(accessCodes);
     expect(rows.filter((r) => r.label === OPERATOR_CODE_LABEL)).toHaveLength(1);
+  });
+
+  // Found in a Ponytail/code-review altitude pass: hashAccessCode just
+  // normalizes (strip dashes, uppercase) and hashes, so if the
+  // sentinel's codeHash were ever derived from its own label, typing
+  // that exact label into the real end-user login form would hash to
+  // the same value and authenticate as the sentinel -- a guessable
+  // login into a documented, publicly-named string, not a real
+  // 128-bit random code. Proves that door stays shut.
+  it("typing the sentinel's own label into the login form does not authenticate as it", async () => {
+    await ensureOperatorAccessCode(testDb.db);
+
+    const result = await checkAccessCode(testDb.db, OPERATOR_CODE_LABEL, "203.0.113.99");
+    expect(result.ok).toBe(false);
   });
 });
 

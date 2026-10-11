@@ -5,16 +5,27 @@
 import { eq } from "drizzle-orm";
 import type { Database } from "@/lib/db/client";
 import { accessCodes, reports } from "@/lib/db/schema";
-import { hashAccessCode, OPERATOR_CODE_LABEL } from "@/lib/credits/access";
+import { OPERATOR_CODE_LABEL } from "@/lib/credits/access";
 import { sweepStaleRuns } from "@/lib/credits/credits";
 
 export { OPERATOR_CODE_LABEL };
 
-// Deterministic, never a real issued code's hash (those come from
-// generateAccessCode's 128 bits of real randomness) -- this doubles
-// as the race guard below, reusing access_codes' existing unique
-// index on code_hash instead of adding a new constraint.
-const OPERATOR_CODE_HASH = hashAccessCode(OPERATOR_CODE_LABEL);
+// A fixed, random 256-bit constant -- generated once (`openssl rand
+// -hex 32`), never derived from OPERATOR_CODE_LABEL or anything else
+// a login attempt could type. code_hash doubles as checkAccessCode's
+// authentication secret, and hashAccessCode's normalization (strip
+// dashes, uppercase) is deterministic, so hashing the sentinel's own
+// label would mean typing the literal, publicly-documented string
+// "__operator__" into the real login form authenticates as the
+// sentinel -- confirmed as a real, working login before this fix.
+// This constant must stay fixed across restarts (so ensureOperator-
+// AccessCode's find-by-hash lookup keeps finding the same row --
+// unlike a per-process-random value, which would "lose" the sentinel
+// on every cold start and create a new one each time), while being as
+// unguessable as a real access code. Reuses access_codes' existing
+// unique index on code_hash as the race guard below, so no schema
+// change is needed.
+const OPERATOR_CODE_HASH = "4a6868285bcbbb28415072f03d4e0d37c7a97577b36ce9578a23361d72cea3cf";
 
 /** Finds or lazily creates the sentinel. Two callers racing to create
  * it both attempt the same deterministic codeHash; the loser's insert
