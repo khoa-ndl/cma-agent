@@ -57,13 +57,13 @@ Each step: write tests first and confirm they fail, implement until they pass, r
 - **Proof:** `npm test` runs and passes on a placeholder test; `npm run build` succeeds.
 - **Leaner option considered:** no ESLint. Kept, since it ships with `create-next-app` at no extra cost.
 
-### Step 2: Database layer
-- [ ] `schema.ts`: `property` (RESO column names, spec 3.1), `access_codes`, `credit_ledger`, `reports`, plus `access_attempts` for rate limiting (see Departures).
-- [ ] Partial unique index `reports(access_code_id) WHERE status = 'running'` (spec 3.3).
-- [ ] Generate the first SQL migration with `drizzle-kit`; commit it.
-- [ ] `client.ts`: the only file that knows the driver. Uses Neon in the app; tests inject a PGlite database with migrations applied.
-- [ ] Test helper: fresh in-memory PGlite database per test file.
-- **Proof:** tests confirm migrations apply, tables exist, and the partial unique index rejects a second running report.
+### Step 2: Database layer — done (00870e6, branch step-2-database)
+- [x] `schema.ts`: `property` (RESO column names, spec 3.1), `access_codes`, `credit_ledger`, `reports`, plus `access_attempts` for rate limiting (see Departures). Also adds a `CHECK (credits_balance >= 0)` constraint, found in review: defense in depth for Step 6.
+- [x] Partial unique index `reports(access_code_id) WHERE status = 'running'` (spec 3.3).
+- [x] Generated the first SQL migration with `drizzle-kit`; committed.
+- [x] `client.ts`: the only file that knows the driver. **Change from the original plan:** uses Neon's HTTP driver (`drizzle-orm/neon-http`), not the WebSocket/Pool driver — found in review to match this plan's own Step 6 assumption ("atomic on any Postgres driver, including Neon's HTTP mode") and to avoid connection-pool exhaustion risk in serverless functions.
+- [x] Test helper: fresh in-memory PGlite database per test, explicitly closed in `afterEach` (found in review: the first version leaked instances across a growing test suite).
+- **Proof:** 8 tests pass — migrations apply, tables exist, the partial unique index rejects a second running report, and the new CHECK constraint rejects a negative balance.
 
 ### Step 3: Sample data generator (A1)
 - [ ] `scripts/generate-data.ts`: seeded generator for 10 areas, ~1,300 closed sales and ~200 active or pending listings, per-area price model (spec 3.2). Writes `data/seed/properties.json`.
