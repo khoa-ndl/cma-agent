@@ -84,12 +84,13 @@ Each step: write tests first and confirm they fail, implement until they pass, r
 - **Found while building:** `search.ts`'s size-band math produced fractional values for an integer column, rejected by Postgres (including the real Neon database); fixed. The first A2 test picked an arbitrary row as "typical," causing a spurious Kirkland failure; switched to the median-sized closed sale per area.
 - **Found in review:** adjustment line items weren't rounded before summing, so a printed grid wouldn't add up to its own total; fixed by rounding each line item first.
 
-### Step 6: Access, sessions and credits (A8, A9, A10)
-- [ ] `access.ts`: random high-entropy codes; stored as SHA-256 hashes, which are sufficient for random codes and need no password-hashing library; revocation check; failed attempts rate-limited per IP through `access_attempts`.
-- [ ] `session.ts`: HTTP-only cookie signed with HMAC (Node `crypto`).
-- [ ] `credits.ts`: **reserve** = one SQL statement that deducts 5 credits only if the balance allows, inserts the `running` report and writes the ledger entry. A single statement is atomic on any Postgres driver, including Neon's HTTP mode. **Refund** on system failure. **Stale-run sweep:** before a new reservation, `running` reports older than the function time limit are marked `failed` and refunded, so a crashed run cannot block a user permanently.
-- [ ] `scripts/issue-code.ts` (`npm run codes:issue -- --label "…" --credits 45`): prints the plain code once.
-- **Proof:** A8 (deduct and refund), A9 (second concurrent report rejected and balance unchanged), A10 (insufficient balance, revoked code), rate limit, stale sweep, cookie tamper rejection.
+### Step 6: Access, sessions and credits (A8, A9, A10) — done (0cf6356, branch step-6-access-credits)
+- [x] `access.ts`: 128-bit random codes (base32, grouped for readability); stored as SHA-256 hashes, sufficient for random codes with no password-hashing library needed; revocation check; failed attempts rate-limited per IP through `access_attempts` (10 / 15 min).
+- [x] `session.ts`: HMAC-signed session token (Node `crypto`, no library), constant-time comparison, 30-day expiry. The HTTP-only cookie itself is set in Step 8.
+- [x] `credits.ts`: **reserve/refund/sweepStaleRuns**, each one atomic multi-table SQL statement (chained CTEs), not a client transaction — a single `UPDATE`'s row lock on `access_codes` is what makes concurrent reservations for the same code serialize correctly. Stale sweep runs before every reservation.
+- [x] `scripts/issue-code.ts` (`npm run codes:issue -- --label "…" --credits 45`): prints the plain code once, using Node's built-in arg parser.
+- **Proof:** 70 tests, 25 new — A8 (deduct/refund, no double-refund), A9 (sequential **and** truly concurrent reservations via `Promise.all`), A10 (insufficient balance, revoked code), rate limiting, stale-run sweep, cookie tamper/expiry/wrong-secret rejection.
+- **Found in review:** the rate limiter's check-then-write has a narrow gap under a parallel burst — documented as an accepted limitation (doesn't help guess a 128-bit code, only bounds a request burst) rather than engineered away. The sequential A9 test alone didn't cover the real concurrent-call pattern named in the criterion; added.
 
 ### Step 7: Agent (A5, A11, A14; A4 live)
 - [ ] `model-client.ts`: the only file that imports the Anthropic SDK (swap point for Bedrock, Vertex or Foundry). Model ID from `ANTHROPIC_MODEL`.
