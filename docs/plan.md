@@ -92,14 +92,15 @@ Each step: write tests first and confirm they fail, implement until they pass, r
 - **Proof:** 70 tests, 25 new — A8 (deduct/refund, no double-refund), A9 (sequential **and** truly concurrent reservations via `Promise.all`), A10 (insufficient balance, revoked code), rate limiting, stale-run sweep, cookie tamper/expiry/wrong-secret rejection.
 - **Found in review:** the rate limiter's check-then-write has a narrow gap under a parallel burst — documented as an accepted limitation (doesn't help guess a 128-bit code, only bounds a request burst) rather than engineered away. The sequential A9 test alone didn't cover the real concurrent-call pattern named in the criterion; added.
 
-### Step 7: Agent (A5, A11, A14; A4 live)
-- [ ] `model-client.ts`: the only file that imports the Anthropic SDK (swap point for Bedrock, Vertex or Foundry). Model ID from `ANTHROPIC_MODEL`.
-- [ ] `tools.ts`: `search_comps`, `compute_adjustments`, `compute_price_range`, `submit_cma`, with strict schemas validated by zod before execution.
-- [ ] `loop.ts`: manual tool loop with streaming. Emits typed progress events. Prompt caching on system prompt and tools. Adaptive thinking, effort `medium`. Handles `refusal` and `max_tokens`. Maximum 10 turns and a token ceiling. Records usage and cost on the report.
-- [ ] `tool_choice` stays `auto` (Sonnet 5.5 rejects forced tool use); the prompt instructs Claude to finish with `submit_cma`.
-- [ ] Anthropic's server-side refusal fallback (`fallbacks: "default"`) is enabled per current Anthropic guidance for Sonnet 5.5; it can be removed if unwanted.
-- **Proof, with a scripted fake model client (no API cost):** A5 (result figures equal engine outputs), A11 (a model that never finishes stops at the turn ceiling, report `failed`, credits refunded), A14 (usage and cost recorded).
-- **Live proof (A4):** `npm run test:live` runs 3 fixed subjects against the real API, about $0.50 in total. Run only with explicit approval.
+### Step 7: Agent (A5, A11, A14; A4 live) — built (5cf5d00, branch step-7-cma-agent); A4 awaiting approval to run
+- [x] `model-client.ts`: the only file that imports the Anthropic SDK (swap point for Bedrock, Vertex or Foundry). Model ID from `ANTHROPIC_MODEL`.
+- [x] `tools.ts`: `search_comps`, `compute_adjustments`, `compute_price_range`, `submit_cma`, each a zod schema that also generates the tool's JSON Schema. `submit_cma` never trusts a model-echoed number — it looks up each comp's adjustedValue from what `compute_adjustments` actually computed and recomputes the price range itself.
+- [x] `loop.ts`: manual tool loop. Emits per-tool-call/result progress events, not per-token (spec 5's UI needs "searching comps…", not a live-typing effect) — the API call itself still streams, to avoid an HTTP timeout. Prompt caching on system prompt and the last tool. Adaptive thinking, effort `medium`. Handles `refusal` and `max_tokens`. Maximum 10 turns and a 50,000-token cumulative ceiling. Imports zero Anthropic SDK runtime code, only the `ModelTurn` function type — what makes it testable with a scripted fake and no cost.
+- [x] `tool_choice` stays `auto`; a plain-text turn (no tool call) gets nudged and consumes a turn, rather than failing.
+- [x] Server-side refusal fallback (`fallbacks: "default"`) enabled.
+- **Proof:** 87 tests, 29 new, scripted fake model, no API cost — A5 (figures equal engine output through the whole loop), A11 (turn limit), A14 (usage/cost), token ceiling, refusal, truncation, plain-text nudge, error recovery.
+- **Found in review, asked to specifically trace what the fake-model tests can't catch:** thinking blocks were silently corrupted into empty text blocks when building conversation history — the SDK's own docs say a modified thinking block gets a 400 error on the very next turn, so this would have failed the live test outright. Fixed, with a regression test that inspects what the loop actually sends on the next turn. Separately, `excludedComps`'s `.default([])` still showed up as `required` in the generated schema (confirmed by generating it) — switched to `.optional()`.
+- **Live proof (A4):** `npm run test:live` runs 3 fixed subjects against the real API, about $0.50 total. Written and gated by `npm run test:live`; not yet run — needs the operator's explicit approval.
 
 ### Step 8: API routes (A6, A15)
 - [ ] `POST /api/access`: validate code, set session cookie.
