@@ -19,7 +19,22 @@ export function proxy(request: NextRequest) {
   // logout request came back with both a fresh, still-valid cookie from
   // here and an expired one from the route, in the same response (D12).
   const isLogoutRequest = request.method === "DELETE";
-  const refreshed = isLogoutRequest
+  // Found live in production (never reproduced locally -- Vercel's real
+  // edge/function split isn't replicated by `next dev`): a POST to
+  // either report-creation endpoint, which returns a long-lived SSE
+  // stream, came back as a 500 from this proxy layer even though the
+  // report row itself was created successfully by the route handler
+  // underneath. Attaching a Set-Cookie here to a request whose response
+  // is about to become a raw streaming Response is the one combination
+  // that's unique to these two routes -- skip the refresh on them
+  // rather than risk breaking report generation. The session still
+  // slides forward on every other request these pages make (status
+  // polling, navigation), so this loses nothing but millisecond-level
+  // precision on exactly this one call.
+  const isStreamingReportCreate =
+    request.method === "POST" &&
+    (request.nextUrl.pathname === "/api/reports" || request.nextUrl.pathname === "/api/admin/reports");
+  const refreshed = isLogoutRequest || isStreamingReportCreate
     ? {}
     : refreshSessionCookies(
         {
