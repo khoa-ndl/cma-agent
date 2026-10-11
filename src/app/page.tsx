@@ -7,7 +7,7 @@ import { SESSION_COOKIE_NAME, resolveAccessCodeId, requireSessionSecret } from "
 import { AccessForm } from "./_components/AccessForm";
 
 // Reads the session cookie on every load (to redirect an already-signed-in
-// visitor straight to /cma/new) — nothing here has a sensible static
+// visitor straight to /cma) — nothing here has a sensible static
 // shell to prerender ahead of that check, so this opts out of Cache
 // Components' instant-navigation validation rather than fake a boundary.
 export const instant = false;
@@ -21,10 +21,11 @@ export default async function HomePage() {
   const accessCodeId = resolveAccessCodeId(cookieStore.get(SESSION_COOKIE_NAME)?.value, requireSessionSecret());
   if (accessCodeId) {
     // Checks the code is still active, not just that the cookie's
-    // signature is valid — a signed cookie stays valid for 30 days
-    // regardless of revocation, and /cma/new redirects back here for a
+    // signature is valid — a signed cookie stays valid for the full
+    // 90-minute idle window regardless of revocation (operator-dashboard
+    // spec.md D11), and every gated /cma/* page redirects back here for a
     // revoked code. Redirecting on token validity alone would bounce
-    // between the two routes forever for a revoked code's lingering
+    // between here and there forever for a revoked code's lingering
     // cookie (A10).
     const status = await getAccessCodeStatus(getDb(), accessCodeId);
     if (status && !status.revoked) {
