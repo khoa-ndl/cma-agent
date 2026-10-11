@@ -65,10 +65,11 @@ Each step: write tests first and confirm they fail, implement until they pass, r
 - [x] Test helper: fresh in-memory PGlite database per test, explicitly closed in `afterEach` (found in review: the first version leaked instances across a growing test suite).
 - **Proof:** 8 tests pass — migrations apply, tables exist, the partial unique index rejects a second running report, and the new CHECK constraint rejects a negative balance.
 
-### Step 3: Sample data generator (A1)
-- [ ] `scripts/generate-data.ts`: seeded generator for 10 areas, ~1,300 closed sales and ~200 active or pending listings, per-area price model (spec 3.2). Writes `data/seed/properties.json`.
-- [ ] `scripts/seed.ts`: loads the JSON into the configured database (idempotent).
-- **Proof (A1):** same seed produces byte-identical output; counts per area and status within targets; every record passes a zod schema of RESO fields and enumerations.
+### Step 3: Sample data generator (A1) — done (bfc0f58, branch step-3-sample-data)
+- [x] `scripts/generate-data.ts`: seeded generator for 10 areas, 1,300 closed sales and 200 active or pending listings, per-area price model (spec 3.2). Writes `data/seed/properties.json`.
+- [x] `scripts/seed.ts`: loads the JSON into the configured database (idempotent). Untested against a real database — deferred to Step 11, same as `client.ts`.
+- **Proof:** 13 tests — deterministic output, RESO shape via zod (`property-schema.ts`, reusing the DB's own enum values), area/status counts, unique listing keys, closes within the trailing 12 months of a fixed generation date.
+- **Found in review:** Townhouses were generated with single-family-sized lots; fixed to a small deeded-lot range before merging.
 
 ### Step 4: Data provider
 - [ ] `provider.ts` (interface from spec 2) and `sample-provider.ts` (Drizzle queries).
