@@ -61,6 +61,39 @@ describe("agent tools", () => {
     expect(tools.at(-1)?.cache_control).toEqual({ type: "ephemeral" });
   });
 
+  it("never sends numeric-range keywords Anthropic's strict tool schema rejects (A4 live failure)", () => {
+    // Confirmed against the real API (2026-10-10): a strict custom tool rejects
+    // numeric bounds ("For 'number' type, properties exclusiveMinimum, maximum
+    // are not supported") and array-length bounds ("For 'array' type, property
+    // 'maxItems' is not supported") — exactly what zod's .positive()/.max()/
+    // .min() produce.
+    const { tools } = setup();
+    const banned = [
+      "minimum",
+      "maximum",
+      "exclusiveMinimum",
+      "exclusiveMaximum",
+      "minItems",
+      "maxItems",
+      "minLength",
+      "maxLength",
+    ];
+
+    function walk(node: unknown): void {
+      if (node === null || typeof node !== "object") return;
+      if (Array.isArray(node)) {
+        for (const item of node) walk(item);
+        return;
+      }
+      for (const key of banned) {
+        expect(node).not.toHaveProperty(key);
+      }
+      for (const value of Object.values(node)) walk(value);
+    }
+
+    for (const tool of tools) walk(tool.input_schema);
+  });
+
   it("search_comps returns scored candidates", async () => {
     const { handlers } = setup();
     const result = await handlers.search_comps({

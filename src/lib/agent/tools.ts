@@ -184,16 +184,47 @@ async function handleSubmitCma(input: unknown, state: RunState): Promise<ToolHan
   return { content: "Submitted.", finalResult };
 }
 
+// Anthropic's strict custom-tool schema doesn't support JSON Schema's bound
+// keywords (confirmed against the real API: "For 'number' type, properties
+// exclusiveMinimum, maximum are not supported", then the same for 'array'
+// type's maxItems). zod's .positive()/.max()/.min() produce exactly these,
+// so they're stripped from what's sent over the wire. Runtime validation is
+// unaffected — the original zod schema still enforces the bound, and a
+// violation comes back to the model as a tool_result error, same as any
+// other invalid input.
+const UNSUPPORTED_BOUND_KEYWORDS = [
+  "minimum",
+  "maximum",
+  "exclusiveMinimum",
+  "exclusiveMaximum",
+  "minItems",
+  "maxItems",
+  "minLength",
+  "maxLength",
+];
+
+function stripUnsupportedKeywords(node: unknown): void {
+  if (node === null || typeof node !== "object") return;
+  if (Array.isArray(node)) {
+    for (const item of node) stripUnsupportedKeywords(item);
+    return;
+  }
+  for (const key of UNSUPPORTED_BOUND_KEYWORDS) delete (node as Record<string, unknown>)[key];
+  for (const value of Object.values(node)) stripUnsupportedKeywords(value);
+}
+
 function toTool(
   name: string,
   description: string,
   schema: z.ZodType,
   cacheLastTool?: boolean,
 ): Anthropic.Beta.Messages.BetaTool {
+  const jsonSchema = z.toJSONSchema(schema);
+  stripUnsupportedKeywords(jsonSchema);
   return {
     name,
     description,
-    input_schema: z.toJSONSchema(schema) as Anthropic.Beta.Messages.BetaTool.InputSchema,
+    input_schema: jsonSchema as Anthropic.Beta.Messages.BetaTool.InputSchema,
     strict: true,
     ...(cacheLastTool ? { cache_control: { type: "ephemeral" } } : {}),
   };
