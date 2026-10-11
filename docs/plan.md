@@ -71,10 +71,11 @@ Each step: write tests first and confirm they fail, implement until they pass, r
 - **Proof:** 13 tests — deterministic output, RESO shape via zod (`property-schema.ts`, reusing the DB's own enum values), area/status counts, unique listing keys, closes within the trailing 12 months of a fixed generation date.
 - **Found in review:** Townhouses were generated with single-family-sized lots; fixed to a small deeded-lot range before merging.
 
-### Step 4: Data provider
-- [ ] `provider.ts` (interface from spec 2) and `sample-provider.ts` (Drizzle queries).
-- [ ] Address search: case-insensitive prefix match on `UnparsedAddress`. A plain index suffices at this size and stays standard Postgres.
-- **Proof:** provider tests on PGlite with a small fixture: address search, get by key, filter by status, date, size and sub-type.
+### Step 4: Data provider — done (1e2dc21, branch step-4-data-provider)
+- [x] `provider.ts` (interface from spec 2) and `sample-provider.ts` (Drizzle queries).
+- [x] Address search: case-insensitive prefix match on `UnparsedAddress`, with the search text's own `%`/`_` escaped so it can't be misread as a wildcard (found in review).
+- **Found in review:** `client.ts`'s `Database` type was tied to `NeonHttpDatabase` specifically, so a PGlite test instance couldn't type-check against it — fixed by making it generic over the driver's query-result type, matching the portability design.
+- **Proof:** 14 tests on a 6-record fixture: address search (prefix, case, wildcard escaping), get by key, and every `searchListings` filter (status, area, sub-type, size band, close date, exclude key, limit).
 
 ### Step 5: Analysis engine (A2, A3)
 - [ ] `geo.ts` (distance in miles), `search.ts` (candidates and similarity score), `config.ts` (per-area adjustment table), `adjustments.ts`, `pricing.ts` (weighted range and suggested list price).
