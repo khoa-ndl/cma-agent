@@ -109,10 +109,23 @@ Each step: write tests first and confirm they fail, implement until they pass, r
 - [x] `cma/layout.tsx` gets "Home" as the first nav item; `/` and `AccessForm.tsx` redirect to `/cma` instead of `/cma/new`.
 - **Proof:** `limit` test (223 tests). **Manual check — done:** logged in with a freshly-issued code, landed on `/cma` (not `/cma/new`) showing the real balance; sidebar's first item is "Home"; revisiting `/` while already logged in redirects straight to `/cma` (D8).
 
-### Step P13: Review
-- [ ] `/code-review high`, `/ponytail-review`, `/simplify` (report only) on the full diff.
-- [ ] Re-check D1–D12 against their tests/manual walkthroughs.
+### Step P13: Review — done
+- [x] `/code-review high` (8 parallel angles) and a 4-agent `/simplify`-style pass (report only, per CLAUDE.md override of that skill's own auto-apply default) on the full diff.
+- [x] Re-checked D1–D12 against their tests and manual walkthroughs — all confirmed, including two re-runs of the full Playwright walkthrough and the D9/D12 check after the fixes below.
 - [ ] Push a branch, check the Vercel preview, merge only with explicit approval.
+- **Found and fixed — Important:**
+  1. **Security:** the operator sentinel's `codeHash` was a hash of its own public label (`"__operator__"`), so typing that exact string into the ordinary login screen authenticated as it — confirmed as a real, working login before the fix. Now a fixed, random 256-bit constant, generated once and committed, never derived from anything a login attempt could type.
+  2. **Correctness:** `proxy.ts`'s sliding-refresh raced a real logout, sending two conflicting `Set-Cookie` headers for the same cookie in one response (confirmed live via curl) — a direct threat to D12. Fixed by skipping the refresh on `DELETE` requests (the only method the two logout routes use).
+- **Found and fixed — Should-fix:**
+  3. Nothing stopped an admin from issuing a real, metered code literally labeled `__operator__`, which would then silently vanish from every customer-facing list. `handleIssueCode` now rejects the reserved label.
+  4. `listReports`' 100-row ceiling stopped being an enforced maximum (just a default) once Step P12 added an optional `limit` parameter. Now clamped with `Math.min`.
+- **Found and fixed — Nit:**
+  5. `RevokeCodeButton` called `router.refresh()` unconditionally regardless of whether the revoke request actually succeeded. Now checks `response.ok` and shows an inline error.
+  6. 16 call sites across every admin page, layout and route re-derived the same 3-line admin-session check with nothing varying per site. Extracted to one `isAdminSession(cookies)` helper.
+  7. `getAdminOverview` ran 4 independent DB queries sequentially; now `Promise.all`.
+  8. A stale comment in `page.tsx` still described the old 30-day cookie and `/cma/new` redirect target.
+- **Deferred (documented debt, not blocking):** `getAdminReport`/`renderAdminReportPdf`/`listAllReports`/`handleCreateOperatorReport` each duplicate their end-user counterpart's mapping/parsing logic almost verbatim; `admin/layout.tsx` vs `cma/layout.tsx` are the same sidebar shell twice; `sweepStaleRuns`' operator-exclusion is a label string-match rather than a dedicated column (matches spec.md's own accepted-risk posture for Release 1, DC3); `NewCmaForm`'s `creditsBalance` going optional lost a compile-time guard for metered callers (2 call sites today, both correct); a pre-existing, not-introduced-by-this-diff gap where a revoked session's still-valid cookie can keep using address search (low severity — sample data only).
+- **Proof:** 227 tests, `next build` clean. Every fix re-verified live: the sentinel-login and logout-race fixes with direct curl checks before/after; the full Playwright walkthrough and the D9/D12 check both rerun clean after the 16-site helper refactor.
 
 ## Risks
 
