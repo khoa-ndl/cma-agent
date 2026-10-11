@@ -30,48 +30,51 @@ Verified directly against the codebase and Next.js 16's own docs before writing 
 
 Each step: write tests first and confirm they fail, implement until they pass, run `npm test`, run `/ponytail-review` on the step's diff, commit, merge with approval.
 
-### Step P0: Amend docs for the session-timeout addition
-- [ ] `intent.md`: add the session-timeout/logout requirement to "Desired outcome."
-- [ ] `spec.md`: add a Decisions row, a data-model note (no new table — cookie-refresh logic), and acceptance criteria D11/D12.
-- [ ] `../spec.md` (main): one-line amendment to §8 noting the session length change, pointing here.
+### Step P0: Amend docs for the session-timeout addition — done (97eb2d9)
+- [x] `intent.md`: add the session-timeout/logout requirement to "Desired outcome."
+- [x] `spec.md`: add a Decisions row, a data-model note (no new table — cookie-refresh logic), and acceptance criteria D11/D12.
+- [x] `../spec.md` (main): one-line amendment to §8 noting the session length change, pointing here.
 - No code changes. Docs-only commit.
 
-### Step P1: Schema + migration — `admin_login_attempts`
-- [ ] `schema.ts`: `adminLoginAttempts` table, identical shape to `accessAttempts`.
-- [ ] `lib/credits/access.ts`: export `MAX_FAILED_ATTEMPTS`, `RATE_LIMIT_WINDOW_MINUTES` (currently module-private).
-- [ ] `lib/credits/credits.ts`: export `STALE_RUN_MINUTES` (currently module-private) — needed by the admin overview's stuck-reports query.
-- [ ] `npm run db:generate` → migration file.
-- **Proof:** migration applies on PGlite; `npm test` passes.
+### Step P1: Schema + migration — `admin_login_attempts` — done (a859225)
+- [x] `schema.ts`: `adminLoginAttempts` table, identical shape to `accessAttempts`.
+- [x] `lib/credits/access.ts`: export `MAX_FAILED_ATTEMPTS`, `RATE_LIMIT_WINDOW_MINUTES` (currently module-private).
+- [x] `lib/credits/credits.ts`: export `STALE_RUN_MINUTES` (currently module-private) — needed by the admin overview's stuck-reports query.
+- [x] `npm run db:generate` → migration file.
+- **Proof:** migration applies on PGlite; `npm test` passes (151 tests).
 
-### Step P2: Consolidate session-length constants; 30 days → 90 minutes
-- [ ] `lib/credits/session.ts`'s `MAX_AGE_MS` becomes the one source of truth, exported.
-- [ ] `app/api/_lib/session.ts`'s `SESSION_MAX_AGE_SECONDS` derives from it (`/ 1000`), not a separate literal.
-- [ ] Value changes to 90 minutes.
-- **Proof:** drift-guard test (`SESSION_MAX_AGE_SECONDS * 1000 === MAX_AGE_MS`) plus a 90-minute-value test; existing session tests pass unchanged.
+### Step P2: Consolidate session-length constants; 30 days → 90 minutes — done (20b2b27)
+- [x] `lib/credits/session.ts`'s `MAX_AGE_MS` becomes the one source of truth, exported.
+- [x] `app/api/_lib/session.ts`'s `SESSION_MAX_AGE_SECONDS` derives from it (`/ 1000`), not a separate literal.
+- [x] Value changes to 90 minutes.
+- **Proof:** drift-guard test (`SESSION_MAX_AGE_SECONDS * 1000 === MAX_AGE_MS`) plus a 90-minute-value test; existing session tests pass unchanged (153 tests).
 
-### Step P3: Admin session token primitives
-- [ ] New `lib/admin/session.ts`: `createAdminSessionToken`/`verifyAdminSessionToken`, independent HMAC sign/verify, reuses the 90-minute constant from P2.
-- **Proof:** round-trip, wrong secret, tampered payload/signature, malformed input, expired token; cross-check both directions (admin verify rejects access-code payload, and vice versa — D2).
+### Step P3: Admin session token primitives — done (3f90564)
+- [x] New `lib/admin/session.ts`: `createAdminSessionToken`/`verifyAdminSessionToken`, independent HMAC sign/verify, reuses the 90-minute constant from P2.
+- **Proof:** round-trip, wrong secret, tampered payload/signature, malformed input, expired token; cross-check both directions (admin verify rejects access-code payload, and vice versa — D2). 161 tests.
 
-### Step P4: Admin login — password check + rate limiting
-- [ ] New `lib/admin/login.ts`: `checkAdminLogin`, constant-time comparison, rate-limit check before comparison (same ordering as `checkAccessCode`), records every attempt.
-- **Proof:** correct/wrong password; 10 failures/15 min blocks an 11th; a different IP unaffected; cross-isolation from `access_attempts` (D10).
+### Step P4: Admin login — password check + rate limiting — done (5035056)
+- [x] New `lib/admin/login.ts`: `checkAdminLogin`, constant-time comparison, rate-limit check before comparison (same ordering as `checkAccessCode`), records every attempt.
+- **Proof:** correct/wrong password; 10 failures/15 min blocks an 11th; a different IP unaffected; cross-isolation from `access_attempts` (D10). 167 tests.
 
-### Step P5: Route-layer admin session helper + login/logout routes
-- [ ] New `app/api/_lib/admin-session.ts`: cookie name, `resolveAdminSession`, `requireAdminPassword`.
-- [ ] New `app/api/admin/session/logic.ts` + `route.ts`: `POST` login, `DELETE` logout.
-- [ ] `app/api/access/route.ts` gains a `DELETE` handler (end-user logout).
-- **Proof:** login success/failure/rate-limited; both `DELETE` handlers clear their cookie (D12).
+### Step P5: Route-layer admin session helper + login/logout routes — done (421b268)
+- [x] New `app/api/_lib/admin-session.ts`: cookie name, `resolveAdminSession`, `requireAdminPassword`.
+- [x] New `app/api/admin/session/logic.ts` + `route.ts`: `POST` login, `DELETE` logout.
+- [x] `app/api/access/route.ts` gains a `DELETE` handler (end-user logout).
+- **Proof:** login success/failure/rate-limited; 176 tests. Both `DELETE` handlers (D12) are trivial cookie clears with no branching logic, so — consistent with this project's existing precedent that `route.ts` files aren't separately unit-tested — they're verified in the Step P11 Playwright walkthrough instead.
 
-### Step P6: `proxy.ts` — sliding idle-timeout refresh
-- [ ] New `src/proxy.ts`: reissues `cma_session`/`cma_admin_session` with a fresh `issuedAt` on every matched request if currently valid; leaves an invalid/expired cookie untouched.
-- [ ] `config.matcher`: `/cma/:path*`, `/admin/:path*`, `/api/:path*`.
-- **Proof:** no unit test (no stable seam for framework-level proxy files yet, same precedent as `route.ts` wrappers). Manual: inspect `Set-Cookie` after a request to confirm refresh; a deliberately-expired token (constructed directly, not waited for) is rejected (D11).
+### Step P6: `proxy.ts` — sliding idle-timeout refresh — done (91c3546)
+- [x] New `src/proxy.ts`: reissues `cma_session`/`cma_admin_session` with a fresh `issuedAt` on every matched request if currently valid; leaves an invalid/expired cookie untouched.
+- [x] `config.matcher`: `/cma/:path*`, `/admin/:path*`, `/api/:path*`.
+- **Change from the original plan:** the plan assumed no stable test seam existed for proxy files. Next's own docs (and `next/experimental/testing/server`) confirm the full `proxy()` function *can* be unit-tested, but the real gap was that it needs `SESSION_SECRET` from `process.env`, with no test precedent for setting that in this suite. Resolved the same way every other route in this project resolves it: pulled the refresh logic into a plain, testable function (`api/_lib/proxy-logic.ts`, explicit `secret` parameter) and left `proxy.ts` itself as the thin, untested NextRequest/NextResponse/env wrapper. 183 tests, including a fake-timers test proving the sliding window itself (D11): a token refreshed at 89 minutes is still valid 89 minutes after *that*, well past when the original token would have expired.
+- **Manual proof:** ran against the real dev server — a valid cookie gets a new `Set-Cookie` with a different token, an already-expired cookie gets nothing, no cookie gets nothing.
 
-### Step P7: Operator sentinel + unmetered report creation
-- [ ] New `lib/credits/operator.ts`: `OPERATOR_CODE_LABEL`, `ensureOperatorAccessCode` (lazy, idempotent), `createOperatorReport` (no `reserveCredits`, no ledger row, catches the partial-unique-index race as `already_running`).
-- [ ] `lib/credits/access.ts`: `listCustomerAccessCodes`, `issueAccessCode`, `revokeAccessCode`.
-- **Proof:** sentinel created once and reused; operator report never changes any other code's balance (D6); no ledger row; concurrent operator reports return `already_running`; each new `access.ts` function covered.
+### Step P7: Operator sentinel + unmetered report creation — done (ada48e6)
+- [x] New `lib/credits/operator.ts`: `ensureOperatorAccessCode` (lazy, idempotent), `createOperatorReport` (no `reserveCredits`, no ledger row, catches the partial-unique-index race as `already_running`).
+- [x] `lib/credits/access.ts`: `OPERATOR_CODE_LABEL`, `listCustomerAccessCodes`, `issueAccessCode`, `revokeAccessCode`.
+- **Change from the original plan:** `OPERATOR_CODE_LABEL` lives in `access.ts`, not `operator.ts` as first sketched — `operator.ts` needs `access.ts`'s `hashAccessCode` to compute the sentinel's deterministic `codeHash`, so defining the label in `operator.ts` would have made the two modules import each other.
+- **Found while implementing:** drizzle-orm wraps the driver's unique-violation error in a `DrizzleQueryError`, with the real Postgres error (the one carrying `.code === "23505"`) nested in `.cause`, not at the top level. The first version's `catch` block checked the wrong level and let the error through uncaught; confirmed against the actual thrown error, fixed to check both.
+- **Proof:** sentinel created once and reused, including under genuine `Promise.all` concurrency; operator report never changes any other code's balance (D6); no ledger row; concurrent operator reports settle to exactly one `already_running` (same proof pattern as the existing A9 concurrent-reservation test); each new `access.ts` function covered. 195 tests.
 
 ### Step P8: Admin reports routes
 - [ ] New `app/api/admin/reports/logic.ts` + `route.ts`: `listAllReports` (unscoped, sentinel labeled "Operator", capped at 200), `handleCreateOperatorReport`/`streamOperatorReport` (SSE, same shape as `/api/reports`).
