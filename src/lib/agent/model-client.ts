@@ -101,3 +101,19 @@ export const runModelTurn: ModelTurn = async (messages, system, tools) => {
     },
   };
 };
+
+// Diagnostic only (GET /api/health/anthropic) -- added to let the
+// operator (or whoever's debugging a deploy) confirm ANTHROPIC_API_KEY
+// actually works in the live environment, independent of logging into
+// the app or spending a real report's worth of tokens. models.list()
+// is a free, side-effect-free call that still requires a valid key, so
+// it fails the same way a real report would (401 invalid_api_key) but
+// costs nothing.
+export async function checkAnthropicConnectivity(): Promise<boolean> {
+  try {
+    await getClient().models.list({ limit: 1 });
+    return true;
+  } catch {
+    return false;
+  }
+}
