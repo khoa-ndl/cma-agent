@@ -19,22 +19,7 @@ export function proxy(request: NextRequest) {
   // logout request came back with both a fresh, still-valid cookie from
   // here and an expired one from the route, in the same response (D12).
   const isLogoutRequest = request.method === "DELETE";
-  // Found live in production (never reproduced locally -- Vercel's real
-  // edge/function split isn't replicated by `next dev`): a POST to
-  // either report-creation endpoint, which returns a long-lived SSE
-  // stream, came back as a 500 from this proxy layer even though the
-  // report row itself was created successfully by the route handler
-  // underneath. Attaching a Set-Cookie here to a request whose response
-  // is about to become a raw streaming Response is the one combination
-  // that's unique to these two routes -- skip the refresh on them
-  // rather than risk breaking report generation. The session still
-  // slides forward on every other request these pages make (status
-  // polling, navigation), so this loses nothing but millisecond-level
-  // precision on exactly this one call.
-  const isStreamingReportCreate =
-    request.method === "POST" &&
-    (request.nextUrl.pathname === "/api/reports" || request.nextUrl.pathname === "/api/admin/reports");
-  const refreshed = isLogoutRequest || isStreamingReportCreate
+  const refreshed = isLogoutRequest
     ? {}
     : refreshSessionCookies(
         {
@@ -62,5 +47,13 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/cma/:path*", "/admin/:path*", "/api/:path*"],
+  // Excludes exactly /api/reports and /api/admin/reports (not their
+  // sub-paths, like /api/reports/[id]) -- the first fix (skipping just
+  // the Set-Cookie call on those two paths, still letting Proxy run and
+  // return NextResponse.next()) did NOT resolve a real production 500,
+  // confirmed with a second live attempt after that fix deployed. This
+  // is the stronger test: Proxy's function body never runs at all for
+  // these two routes, ruling out any interaction with their long-lived
+  // SSE streaming response, not just the cookie-setting part of it.
+  matcher: ["/cma/:path*", "/admin/:path*", "/api/((?!reports$|admin/reports$).*)"],
 };
