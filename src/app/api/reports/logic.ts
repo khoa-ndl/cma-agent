@@ -66,6 +66,13 @@ export async function handleCreateReport<TQueryResult extends PgQueryResultHKT>(
   };
 }
 
+const UNEXPECTED_ERROR_OUTCOME: AgentRunOutcome = {
+  status: "failed",
+  failureReason: "unexpected_error",
+  usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 },
+  costUsd: 0,
+};
+
 async function* streamReport<TQueryResult extends PgQueryResultHKT>(
   db: Database<TQueryResult>,
   provider: DataProvider,
@@ -73,41 +80,54 @@ async function* streamReport<TQueryResult extends PgQueryResultHKT>(
   subject: Subject,
   reportId: string,
 ): AsyncGenerator<ReportStreamEvent, void> {
-  const generator = runCmaAgent(subject, provider, modelTurn);
-  let next = await generator.next();
-  while (!next.done) {
-    yield next.value;
-    next = await generator.next();
-  }
-  const outcome = next.value;
+  // Found live in production: an error that isn't one of the agent
+  // loop's own handled failure modes (e.g. a network failure reaching
+  // the model) used to propagate straight out of this generator,
+  // skipping the DB update below entirely -- the report stayed
+  // "running" forever and nothing was ever logged. This still refunds
+  // and marks it failed, and logs the real error so it's never
+  // invisible again.
+  try {
+    const generator = runCmaAgent(subject, provider, modelTurn);
+    let next = await generator.next();
+    while (!next.done) {
+      yield next.value;
+      next = await generator.next();
+    }
+    const outcome = next.value;
 
-  if (outcome.status === "succeeded") {
-    await db
-      .update(reports)
-      .set({
-        status: "succeeded",
-        result: outcome.result,
-        inputTokens: outcome.usage.inputTokens,
-        outputTokens: outcome.usage.outputTokens,
-        cacheReadTokens: outcome.usage.cacheReadTokens,
-        costUsd: outcome.costUsd.toFixed(4),
-        finishedAt: new Date(),
-      })
-      .where(eq(reports.id, reportId));
-  } else {
+    if (outcome.status === "succeeded") {
+      await db
+        .update(reports)
+        .set({
+          status: "succeeded",
+          result: outcome.result,
+          inputTokens: outcome.usage.inputTokens,
+          outputTokens: outcome.usage.outputTokens,
+          cacheReadTokens: outcome.usage.cacheReadTokens,
+          costUsd: outcome.costUsd.toFixed(4),
+          finishedAt: new Date(),
+        })
+        .where(eq(reports.id, reportId));
+    } else {
+      await refundCredits(db, reportId);
+      await db
+        .update(reports)
+        .set({
+          inputTokens: outcome.usage.inputTokens,
+          outputTokens: outcome.usage.outputTokens,
+          cacheReadTokens: outcome.usage.cacheReadTokens,
+          costUsd: outcome.costUsd.toFixed(4),
+        })
+        .where(eq(reports.id, reportId));
+    }
+
+    yield { type: "done", outcome };
+  } catch (err) {
+    console.error(`Report ${reportId} crashed unexpectedly:`, err);
     await refundCredits(db, reportId);
-    await db
-      .update(reports)
-      .set({
-        inputTokens: outcome.usage.inputTokens,
-        outputTokens: outcome.usage.outputTokens,
-        cacheReadTokens: outcome.usage.cacheReadTokens,
-        costUsd: outcome.costUsd.toFixed(4),
-      })
-      .where(eq(reports.id, reportId));
+    yield { type: "done", outcome: UNEXPECTED_ERROR_OUTCOME };
   }
-
-  yield { type: "done", outcome };
 }
 
 const MAX_LISTED_REPORTS = 100;

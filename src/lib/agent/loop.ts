@@ -19,7 +19,14 @@ export type AgentFailureReason =
   | "token_limit_exceeded"
   | "refusal"
   | "truncated"
-  | "no_final_result";
+  | "no_final_result"
+  // Not produced by this file -- used by the route-layer streaming
+  // functions (api/reports/logic.ts, api/admin/reports/logic.ts) when
+  // something throws instead of resolving to one of the reasons above
+  // (e.g. a network failure reaching the model). Found live: without
+  // this, an uncaught throw skipped the report's DB update entirely,
+  // leaving it "running" forever with no error ever logged.
+  | "unexpected_error";
 
 export interface AgentUsage {
   inputTokens: number;

@@ -138,4 +138,29 @@ describe("handleCreateOperatorReport", () => {
 
     await first.events.return(undefined);
   });
+
+  // Found live in production: an unexpected error partway through the
+  // stream used to skip the report's DB update entirely -- it stayed
+  // "running" forever (confirmed in the real Reports & costs screen)
+  // and blocked every subsequent operator report with "already_running"
+  // until the 5-minute stale sweep eventually caught it.
+  it("still marks the report failed when the model throws an unexpected error", async () => {
+    const provider = createSampleDataProvider(testDb.db);
+    const throwingModel = async () => {
+      throw new Error("simulated network failure");
+    };
+    const result = await handleCreateOperatorReport(testDb.db, provider, throwingModel, SUBJECT, true);
+    if (result.kind !== "stream") throw new Error("expected a stream");
+
+    const events = await drain(result.events);
+    const done = events.at(-1) as { type: "done"; outcome: AgentRunOutcome };
+    expect(done.outcome.status).toBe("failed");
+    if (done.outcome.status === "failed") {
+      expect(done.outcome.failureReason).toBe("unexpected_error");
+    }
+
+    const [row] = await testDb.db.select().from(reports).where(eq(reports.id, result.reportId));
+    expect(row.status).toBe("failed");
+    expect(row.finishedAt).not.toBeNull();
+  });
 });

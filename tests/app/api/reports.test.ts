@@ -151,4 +151,32 @@ describe("handleCreateReport", () => {
     const [code] = await testDb.db.select().from(accessCodes).where(eq(accessCodes.id, CODE_ID));
     expect(code.creditsBalance).toBe(45); // refunded back to the starting balance
   });
+
+  // Found live in production: an unexpected error partway through the
+  // stream (not one of the agent loop's own handled failure modes) used
+  // to skip the report's DB update entirely -- it stayed "running"
+  // forever, and nothing was ever logged, so the failure was invisible
+  // until a human noticed the report never finished.
+  it("still marks the report failed and refunds credits when the model throws an unexpected error", async () => {
+    const provider = createSampleDataProvider(testDb.db);
+    const throwingModel = async () => {
+      throw new Error("simulated network failure");
+    };
+    const result = await handleCreateReport(testDb.db, provider, throwingModel, SUBJECT, CODE_ID);
+    if (result.kind !== "stream") throw new Error("expected a stream");
+
+    const events = await drain(result.events);
+    const done = events.at(-1) as { type: "done"; outcome: AgentRunOutcome };
+    expect(done.outcome.status).toBe("failed");
+    if (done.outcome.status === "failed") {
+      expect(done.outcome.failureReason).toBe("unexpected_error");
+    }
+
+    const [row] = await testDb.db.select().from(reports).where(eq(reports.id, result.reportId));
+    expect(row.status).toBe("failed");
+    expect(row.finishedAt).not.toBeNull();
+
+    const [code] = await testDb.db.select().from(accessCodes).where(eq(accessCodes.id, CODE_ID));
+    expect(code.creditsBalance).toBe(45); // refunded back to the starting balance
+  });
 });

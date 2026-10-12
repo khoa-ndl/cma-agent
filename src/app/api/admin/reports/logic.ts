@@ -53,6 +53,13 @@ export async function handleCreateOperatorReport<TQueryResult extends PgQueryRes
   };
 }
 
+const UNEXPECTED_ERROR_OUTCOME: AgentRunOutcome = {
+  status: "failed",
+  failureReason: "unexpected_error",
+  usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 },
+  costUsd: 0,
+};
+
 async function* streamOperatorReport<TQueryResult extends PgQueryResultHKT>(
   db: Database<TQueryResult>,
   provider: DataProvider,
@@ -60,48 +67,65 @@ async function* streamOperatorReport<TQueryResult extends PgQueryResultHKT>(
   subject: Subject,
   reportId: string,
 ): AsyncGenerator<AdminReportStreamEvent, void> {
-  const generator = runCmaAgent(subject, provider, modelTurn);
-  let next = await generator.next();
-  while (!next.done) {
-    yield next.value;
-    next = await generator.next();
-  }
-  const outcome = next.value;
+  // Found live in production: an error that isn't one of the agent
+  // loop's own handled failure modes used to propagate straight out of
+  // this generator, skipping the DB update below entirely -- the
+  // report stayed "running" forever (confirmed in the real Reports &
+  // costs screen) and blocked every later operator report with
+  // "already_running" until the 5-minute stale sweep caught it. This
+  // still marks it failed and logs the real error so it's never
+  // invisible again.
+  try {
+    const generator = runCmaAgent(subject, provider, modelTurn);
+    let next = await generator.next();
+    while (!next.done) {
+      yield next.value;
+      next = await generator.next();
+    }
+    const outcome = next.value;
 
-  // No refundCredits call on failure here -- an operator report never
-  // reserved credits in the first place, so there's nothing to refund.
-  // Mirrors api/reports/logic.ts's streamReport: a succeeded run stores
-  // its result, a failed one doesn't, both still record usage and
-  // finishedAt (unlike the end-user path, which only refunds here and
-  // lets refundCredits itself set status/finishedAt).
-  if (outcome.status === "succeeded") {
+    // No refundCredits call on failure here -- an operator report never
+    // reserved credits in the first place, so there's nothing to refund.
+    // Mirrors api/reports/logic.ts's streamReport: a succeeded run stores
+    // its result, a failed one doesn't, both still record usage and
+    // finishedAt (unlike the end-user path, which only refunds here and
+    // lets refundCredits itself set status/finishedAt).
+    if (outcome.status === "succeeded") {
+      await db
+        .update(reports)
+        .set({
+          status: "succeeded",
+          result: outcome.result,
+          inputTokens: outcome.usage.inputTokens,
+          outputTokens: outcome.usage.outputTokens,
+          cacheReadTokens: outcome.usage.cacheReadTokens,
+          costUsd: outcome.costUsd.toFixed(4),
+          finishedAt: new Date(),
+        })
+        .where(eq(reports.id, reportId));
+    } else {
+      await db
+        .update(reports)
+        .set({
+          status: "failed",
+          inputTokens: outcome.usage.inputTokens,
+          outputTokens: outcome.usage.outputTokens,
+          cacheReadTokens: outcome.usage.cacheReadTokens,
+          costUsd: outcome.costUsd.toFixed(4),
+          finishedAt: new Date(),
+        })
+        .where(eq(reports.id, reportId));
+    }
+
+    yield { type: "done", outcome };
+  } catch (err) {
+    console.error(`Operator report ${reportId} crashed unexpectedly:`, err);
     await db
       .update(reports)
-      .set({
-        status: "succeeded",
-        result: outcome.result,
-        inputTokens: outcome.usage.inputTokens,
-        outputTokens: outcome.usage.outputTokens,
-        cacheReadTokens: outcome.usage.cacheReadTokens,
-        costUsd: outcome.costUsd.toFixed(4),
-        finishedAt: new Date(),
-      })
+      .set({ status: "failed", finishedAt: new Date() })
       .where(eq(reports.id, reportId));
-  } else {
-    await db
-      .update(reports)
-      .set({
-        status: "failed",
-        inputTokens: outcome.usage.inputTokens,
-        outputTokens: outcome.usage.outputTokens,
-        cacheReadTokens: outcome.usage.cacheReadTokens,
-        costUsd: outcome.costUsd.toFixed(4),
-        finishedAt: new Date(),
-      })
-      .where(eq(reports.id, reportId));
+    yield { type: "done", outcome: UNEXPECTED_ERROR_OUTCOME };
   }
-
-  yield { type: "done", outcome };
 }
 
 const MAX_LISTED_ADMIN_REPORTS = 200;
