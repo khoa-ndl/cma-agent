@@ -91,11 +91,14 @@ A fresh-eyes review of this document (dispatched before handing it to you, per t
 4. **"Prepared for [name]" cover personalization.** It showed up in the Cloud CMA research writeup but was never actually in this document's Adopt list, and no client-name field exists anywhere in the data model. **Explicitly out of scope:** this redesign restyles the existing cover page (bolder treatment, bigger photo) without adding a personalization field. A real feature if wanted later, not a design-system change.
 6. *(numbered to match the builder-check report)* **Typography must be chosen before the PDF is built, not after** — folded into Scope above as the 2→1→3→4 execution order.
 
-## Open decisions (yours)
+## Decisions confirmed by the operator
 
-1. **Who sources the placeholder/stock photos, and under what license?** `public/` currently has only Next.js's own placeholder SVGs — a real set of ~15-20 generic exterior-house photos needs to come from somewhere. I can pull properly-licensed free-for-commercial-use stock photos myself (e.g. via Bash/curl from a site like Pexels or Unsplash, which license this permissively) rather than generating anything — I have no image-generation tool, confirmed earlier this session, but downloading an already-licensed existing photo is a different, available capability. **My default:** I source them this way unless you'd rather supply specific photos yourself.
-2. **Does a comp photo need an "illustrative/representative image" label?** The PDF already carries "Sample data, not real listings" and "not an appraisal" disclosures throughout, but those don't specifically address a photo. An unlabelled house photo next to a real-looking (if fictional) address is a slightly different trust question than a data table is. **My default:** add a small caption/label on each photo (e.g. "Representative image") — cheap, and removes any ambiguity the existing disclosures don't quite cover. Say so if you'd rather skip it; the existing page-level disclosures may already be enough in your judgment.
-3. **Display typeface choice.** I'd pick a specific pairing (e.g., a geometric/confident sans for headlines alongside the existing body font) when this goes to `ui-ux-pro-max` for the actual token generation — that tool is built to make this exact call well with real options to react to, so I'm leaving the specific typeface itself to that step rather than guessing one here.
+1. **Photo sourcing:** resolved — sourced by the builder (properly-licensed, free-for-commercial-use stock photos, e.g. via Pexels/Unsplash; no image generation, just downloading already-licensed existing photos), not supplied by the operator.
+2. **Photo labeling:** resolved — yes, each comp photo carries a small "Representative image" caption.
+
+## Left to the builder (in addition to the earlier list)
+
+3. **Display typeface choice.** A specific pairing (e.g., a geometric/confident sans for headlines alongside the existing body font) gets picked when this goes to `ui-ux-pro-max` for the actual token generation — that tool is built to make this call well with real options to react to.
 
 ## What's left to the builder
 
