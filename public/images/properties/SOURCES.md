@@ -37,7 +37,7 @@ Each entry: local filename -- Commons file page -- license -- photographer/uploa
 - `townhouse-3.jpg` -- https://commons.wikimedia.org/wiki/File:2600_block_of_Maryland_Avenue,_Baltimore,_MD_21218_(35850713201).jpg -- CC0 -- Baltimore Heritage
 - `townhouse-4.jpg` -- https://commons.wikimedia.org/wiki/File:201-213_Delancey_Street_Society_Hill.jpg -- CC BY-SA 4.0 -- Beyond My Ken
 - `townhouse-5.jpg` -- https://commons.wikimedia.org/wiki/File:224-228_West_Washington_Square_from_north.jpg -- CC BY-SA 4.0 -- Beyond My Ken
-- `townhouse-6.jpg` -- https://commons.wikimedia.org/wiki/File:1523_%26_1525_Cherry_Street.jpg -- CC BY-SA 4.0 -- Beyond My Ken
+- `townhouse-6.jpg` -- https://commons.wikimedia.org/wiki/File:Allendale,_townhomes_(21415500070).jpg -- CC BY-SA 2.0 -- Preservation Maryland (Flickr, imported via flickr2commons)
 
 ## Notes
 
@@ -73,3 +73,12 @@ Each entry: local filename -- Commons file page -- license -- photographer/uploa
   photo set (which consistently frames street-name signs, by the nature of
   what that project documents) to Philadelphia historic-district rowhouse
   photos by a different photographer, to avoid the same pattern recurring.
+- **Third pass (second post-review):** `townhouse-6`'s second-pass
+  replacement (1523 & 1525 Cherry Street, Philadelphia) still had a legible
+  painted house number ("1523") in the arched brick transom above the door --
+  a Philadelphia rowhouse architectural feature (numbered fanlight transoms)
+  that turned out to be a recurring trap across that photographer's whole
+  catalog. Replaced with a wide block shot of well-kept Allendale
+  neighborhood, Baltimore rowhomes (same trusted source as `townhouse-1`),
+  where deep covered porches keep every door/transom in shadow and at
+  enough distance that no numerals are legible anywhere in frame.
