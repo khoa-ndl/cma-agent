@@ -37,7 +37,7 @@ function describe(event: ReportStreamEvent): string {
 // one), capped below 100 until the server's own "done" event confirms it
 // -- a real tool_result is not the same guarantee as the run having
 // actually finished and been persisted.
-function computeProgress(events: ReportStreamEvent[]): number {
+export function computeProgress(events: ReportStreamEvent[]): number {
   const completed = new Set(
     events
       .filter((event): event is Extract<ReportStreamEvent, { type: "tool_result" }> => event.type === "tool_result" && event.ok)
@@ -87,6 +87,7 @@ export function NewCmaForm({
   // The URL this form was loaded at, so a reset can restore it after the
   // in-flight replaceState swap to the report's own URL (below).
   const originalPathRef = useRef<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const canSubmit = subject !== null && phase === "idle" && (unmetered || (creditsBalance ?? 0) >= 5);
 
@@ -94,7 +95,21 @@ export function NewCmaForm({
     if (phase !== "done") return;
     const timer = setTimeout(resetForm, DONE_RESET_MS);
     return () => clearTimeout(timer);
+    // resetForm is intentionally not wrapped in useCallback: this project
+    // relies on React Compiler for memoization, and it rejects manual
+    // useCallback here ("existing memoization could not be preserved").
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
+
+  // Keeps the full path (not just pathname) so a query string or hash the
+  // page was loaded with -- none exist today, but nothing stops one being
+  // added later -- survives a reset instead of silently being dropped.
+  function restoreOriginalPath() {
+    if (originalPathRef.current) {
+      window.history.replaceState(null, "", originalPathRef.current);
+      originalPathRef.current = null;
+    }
+  }
 
   function resetForm() {
     setPhase("idle");
@@ -104,9 +119,7 @@ export function NewCmaForm({
     setReportId(null);
     setError(null);
     setFormKey((k) => k + 1);
-    if (originalPathRef.current) {
-      window.history.replaceState(null, "", originalPathRef.current);
-    }
+    restoreOriginalPath();
   }
 
   function handleSelect(match: AddressMatch) {
@@ -136,6 +149,14 @@ export function NewCmaForm({
     setEvents([]);
     setReportId(null);
     setPhase("running");
+
+    // Set once the server's own "done" event arrives (success or failure).
+    // Distinguishes a real completion from a dropped connection or thrown
+    // error below, both of which must restore the URL the same way
+    // resetForm() does -- otherwise a second submission right after would
+    // capture the still-swapped report URL as its own "original" path
+    // (found in review) and a later reset would restore the wrong address.
+    let settled = false;
 
     try {
       const response = await fetch(endpoint, {
@@ -167,26 +188,53 @@ export function NewCmaForm({
         const event = data as ReportStreamEvent;
         setEvents((prev) => [...prev, event]);
         if (event.type === "done") {
+          settled = true;
           setPhase(event.outcome.status === "succeeded" ? "done" : "failed");
         }
       });
 
-      // The stream closed without ever sending "done" -- a dropped
-      // connection rather than a real failure. The report may still be
-      // running server-side; land back on idle rather than claiming it
-      // failed, same posture as the pre-overlay version's fallback.
-      setPhase((current) => (current === "running" ? "idle" : current));
+      if (!settled) {
+        // The stream closed without ever sending "done" -- a dropped
+        // connection rather than a real failure. The report may still be
+        // running server-side; land back on idle rather than claiming it
+        // failed, same posture as the pre-overlay version's fallback.
+        restoreOriginalPath();
+        setReportId(null);
+        setPhase("idle");
+      }
     } catch {
+      restoreOriginalPath();
+      setReportId(null);
       setError("Lost the connection. Check your network and try again.");
       setPhase("idle");
     }
   }
 
   const progress = phase === "done" ? 100 : computeProgress(events);
+  const dismissible = phase === "done" || phase === "failed";
+
+  useEffect(() => {
+    if (phase === "idle") return;
+    dialogRef.current?.focus();
+  }, [phase]);
+
+  useEffect(() => {
+    if (!dismissible) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") resetForm();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+    // Same reasoning as the effect above -- resetForm isn't useCallback'd.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dismissible]);
 
   return (
     <>
-      <div className="flex w-full max-w-lg flex-col gap-6">
+      {/* inert (not just the overlay's own stacking) is what actually stops
+          keyboard/screen-reader users from tabbing into these fields while
+          the dialog below is open -- z-index only blocks mouse clicks. */}
+      <div inert={phase !== "idle" ? true : undefined} className="flex w-full max-w-lg flex-col gap-6">
         {!unmetered && (
           <p className="text-sm text-(--color-muted-foreground)">
             {creditsBalance} report{creditsBalance === 1 ? "" : "s"} remaining
@@ -295,7 +343,11 @@ export function NewCmaForm({
           aria-label="CMA generation progress"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
         >
-          <div className="flex w-[90%] max-w-md flex-col gap-4 rounded-2xl bg-(--color-card) p-8 shadow-xl">
+          <div
+            ref={dialogRef}
+            tabIndex={-1}
+            className="flex w-[90%] max-w-md flex-col gap-4 rounded-2xl bg-(--color-card) p-8 shadow-xl outline-none"
+          >
             {phase === "running" && (
               <>
                 <h2 className="text-lg font-semibold text-(--color-foreground)">Working on your CMA…</h2>
