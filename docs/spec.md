@@ -186,7 +186,22 @@ Every screen and every PDF page shows: "Sample data, not real listings" and "For
 | Claude Opus 5.5 | $4.00 | $20.00 | $0.20 |
 | Claude Haiku 5.5 | $0.10 | $0.50 | n/a |
 
-### 7.2 Estimate per report (to be replaced with measured values during the build)
+### 7.2 Measured cost per report (plan.md Step 12, 2026-10-13)
+
+10 live reports against the real Anthropic API, one per area-ish spread across the 10 sample areas (Queen Anne, Redmond, Kirkland ×2, Ballard, West Seattle, Capitol Hill ×2, plus a repeat Redmond address), all succeeding first try with no retries:
+
+| Metric | Measured |
+|---|---|
+| Reports run | 10 / 10 succeeded |
+| Input tokens per report (avg) | 19,856 |
+| Output tokens per report (avg) | 1,512 |
+| Cache-read tokens per report (avg) | 7,371 |
+| **Cost per report** | **avg $0.0563, range $0.0341–$0.0699** |
+| Total cost (10 reports) | $0.5631 |
+
+Well under the original $0.12–$0.20 estimate below (kept for reference) — consistent with the smaller spot checks from Steps 7 and 9 ($0.04–$0.06/report), now confirmed on a larger sample. The original estimate assumed more turns and a smaller cached share than the real agent loop needed in practice.
+
+<details><summary>Original estimate (superseded above)</summary>
 
 | Assumption | Value |
 |---|---|
@@ -195,17 +210,19 @@ Every screen and every PDF page shows: "Sample data, not real listings" and "For
 | Output tokens per report (incl. thinking) | ~8,000 |
 | **Estimated cost per report (Sonnet 5.5)** | **$0.12–$0.20** |
 
+</details>
+
 ### 7.3 Monthly budget (target under $50)
 
 | Item | Estimate |
 |---|---|
-| Claude API | Bounded by issued credits; ~$40 covers ~200+ reports |
+| Claude API | Bounded by issued credits; at the measured $0.0563/report average, the existing $40/mo Anthropic Console limit (set in Step 11) covers ~700 reports — no change needed |
 | Vercel | $0 (Hobby); Pro ($20/month) when Hobby limits are reached; see C1 |
 | Neon | $0 (Free plan: 0.5 GB storage, 100 compute-hours per month); see C2 |
 | Email (Release 2, Resend free tier) | $0 |
 
 - **Provider safeguard:** a monthly spend limit configured in the Anthropic Console, set at or below the API budget.
-- **Operator rule:** the sum of outstanding credits × cost per credit stays within the monthly API budget. The measured cost per report from 4.3 informs how many codes are issued.
+- **Operator rule:** the sum of outstanding credits × cost per credit stays within the monthly API budget. At $0.0563/report (7.2) and 5 credits/report, a code issued with the existing 45-credit default represents ~$0.51 of real spend across its 9 reports — the default needs no adjustment from measured data.
 
 ## 8. Security and privacy
 

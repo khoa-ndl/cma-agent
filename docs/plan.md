@@ -173,9 +173,11 @@ Operator Dashboard (see `operator-dashboard/plan.md`, Steps P0–P13) merged to 
 
 **Proof:** both health endpoints (`/api/health`, `/api/health/anthropic`) confirmed 200 against production after the chain landed. No dedicated regression test for #1 or #3 (migration-ordering and edge/proxy routing aren't reachable from the PGlite test harness); #4 has unit-test coverage since the actual logic bug lives in application code, not platform behavior.
 
-### Step 12: Measure cost (C4) and tune
-- [ ] With approval, run about 10 reports on the preview deploy. Record measured tokens and cost per report, update spec 7.2, and set the Anthropic spend limit and initial code allocations from measured data.
-- [ ] Tune effort and prompt if quality or cost is off target.
+### Step 12: Measure cost (C4) and tune — done
+- [x] With approval, ran 10 live reports (against the dev Neon database + real Anthropic API, not literally the production deploy — the sample dataset is deterministic/identical between the two, so which database backs the agent run doesn't affect token/cost behavior, and production's own infra was already separately verified via the health endpoints after the Step 11 incident chain). Recorded measured tokens and cost per report, updated spec 7.2.
+- [x] Set the Anthropic spend limit and initial code allocations from measured data: **no change needed**. At the measured $0.0563/report average, the existing $40/mo Console limit (Step 11) covers ~700 reports, and the existing 45-credit default per issued code represents ~$0.51 of real spend — both already have large headroom.
+- [x] Tune effort and prompt if quality or cost is off target: not needed. All 10 reports succeeded on the first attempt with no retries, cost came in well under the original $0.12–$0.20 estimate, and report quality (comps selected, rationale) looked sound on manual read-through — no sign of the model needing more turns or a different effort level.
+- **Proof:** 10/10 succeeded, no errors or retries. avg cost $0.0563 (range $0.0341–$0.0699), avg tokens 19,856 in / 1,512 out / 7,371 cache-read. Full detail in spec.md §7.2.
 
 ### Feature: reports list and sidebar navigation (post-launch request)
 
