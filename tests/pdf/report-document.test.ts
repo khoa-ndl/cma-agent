@@ -111,4 +111,30 @@ describe("ReportDocument", () => {
     expect(fullText).toContain(`$${rates.livingAreaPerSqft.toLocaleString()} / sq ft`);
     expect(fullText).toContain(`$${rates.bedroom.toLocaleString()}`);
   });
+
+  it("includes the subject's address on the cover/subject section when mapPositions is provided", async () => {
+    const subjectWithAddress = { ...SUBJECT, unparsedAddress: "100 Main St" };
+    const mapPositions = {
+      subject: { latitude: 47.671, longitude: -122.381 },
+      comps: [
+        { listingKey: "WA-000001", latitude: 47.68, longitude: -122.37 },
+        { listingKey: "WA-000002", latitude: 47.66, longitude: -122.39 },
+      ],
+    };
+
+    const buffer = await renderToBuffer(
+      ReportDocument({ subject: subjectWithAddress, result: RESULT, mapPositions }),
+    );
+    const pdf = await getDocumentProxy(new Uint8Array(buffer));
+    const { text: pages } = await extractText(pdf, { mergePages: false });
+    const fullText = pages.join("\n");
+
+    expect(fullText).toContain("100 Main St");
+  });
+
+  it("renders without the map section when mapPositions is undefined (an old report re-rendered, or one missing lookups)", async () => {
+    await expect(
+      renderToBuffer(ReportDocument({ subject: SUBJECT, result: RESULT, mapPositions: undefined })),
+    ).resolves.toBeInstanceOf(Buffer);
+  });
 });

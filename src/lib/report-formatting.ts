@@ -18,6 +18,15 @@ export function currency(n: number): string {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 }
 
+// Compact currency for the comp map's pin labels (e.g. "$450K") -- the
+// full currency() format above is too wide to sit next to a pin in a
+// 200x200 viewBox without overlapping neighbors. Shared between the web
+// results page (ReportView) and the PDF's comp map so the two renderings
+// can't diverge.
+export function compactCurrency(n: number): string {
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
+}
+
 // Pure geometry for the subject/comp map (spec 5 screens 3 and 5): shared
 // by the web results page and the PDF so the pin positions can't drift
 // between the two renderings of the same report. Equirectangular

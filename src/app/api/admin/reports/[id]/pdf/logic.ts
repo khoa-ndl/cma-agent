@@ -28,6 +28,8 @@ export async function renderAdminReportPdf<TQueryResult extends PgQueryResultHKT
     return { kind: "error", status: 409, body: { reason: "not_ready" } };
   }
 
-  const buffer = await renderToBuffer(ReportDocument({ subject: body.subject as Subject, result: body.result }));
+  const buffer = await renderToBuffer(
+    ReportDocument({ subject: body.subject as Subject, result: body.result, mapPositions: body.mapPositions }),
+  );
   return { kind: "pdf", status: 200, buffer };
 }

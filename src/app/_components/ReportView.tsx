@@ -3,18 +3,11 @@
 import { useEffect, useState } from "react";
 import type { Subject } from "@/lib/engine/adjustments";
 import type { ReportBody } from "@/app/api/reports/[id]/logic";
-import { ADJUSTMENT_FACTORS, currency, layoutCompMap, photoForListing } from "@/lib/report-formatting";
+import { ADJUSTMENT_FACTORS, compactCurrency, currency, layoutCompMap, photoForListing } from "@/lib/report-formatting";
 
 export type { ReportBody };
 
 const POLL_MS = 2500;
-
-// Compact currency for the comp map's pin labels (e.g. "$450K") -- the
-// full currency() format used elsewhere is too wide to sit next to a pin
-// in a 200x200 viewBox without overlapping neighbors.
-function compactCurrency(n: number): string {
-  return n.toLocaleString("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
-}
 
 // Hand-drawn teardrop map pin (no icon library -- Global Constraints).
 // Path is authored tip-first at the local origin so the group's
