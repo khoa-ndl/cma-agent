@@ -6,6 +6,7 @@ import type { Subject } from "@/lib/engine/adjustments";
 import type { CmaResult } from "@/lib/agent/tools";
 import { getAdjustmentRates } from "@/lib/engine/config";
 import { SAMPLE_DATA_DISCLOSURE, NOT_APPRAISAL_DISCLOSURE } from "@/lib/disclosures";
+import { compactCurrency } from "@/lib/report-formatting";
 
 const SUBJECT: Subject = {
   latitude: 47.67,
@@ -130,11 +131,31 @@ describe("ReportDocument", () => {
     const fullText = pages.join("\n");
 
     expect(fullText).toContain("100 Main St");
+
+    // The comp map section itself -- its heading, and at least one pin's
+    // compactCurrency-formatted label (both comps have a mapPositions
+    // entry, so both WA-000001's and WA-000002's adjustedValue labels
+    // should be extractable text, not just rendered graphics).
+    expect(fullText).toContain("Comp Map");
+    expect(fullText).toContain(compactCurrency(RESULT.selectedComps[0].adjustedValue));
+    expect(fullText).toContain(compactCurrency(RESULT.selectedComps[1].adjustedValue));
+
+    // Photo-forward comp rows: the caption under each thumbnail.
+    expect(fullText).toContain("Representative image");
   });
 
   it("renders without the map section when mapPositions is undefined (an old report re-rendered, or one missing lookups)", async () => {
-    await expect(
-      renderToBuffer(ReportDocument({ subject: SUBJECT, result: RESULT, mapPositions: undefined })),
-    ).resolves.toBeInstanceOf(Buffer);
+    const buffer = await renderToBuffer(ReportDocument({ subject: SUBJECT, result: RESULT, mapPositions: undefined }));
+    const pdf = await getDocumentProxy(new Uint8Array(buffer));
+    const { text: pages } = await extractText(pdf, { mergePages: false });
+    const fullText = pages.join("\n");
+
+    // No coordinates to plot -- the map section must not appear at all,
+    // not just "not throw."
+    expect(fullText).not.toContain("Comp Map");
+
+    // The photo-forward rows are independent of mapPositions, so they
+    // should still render.
+    expect(fullText).toContain("Representative image");
   });
 });
