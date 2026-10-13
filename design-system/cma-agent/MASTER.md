@@ -7,7 +7,7 @@
 ---
 
 **Project:** CMA Agent
-**Generated:** 2026-10-10 22:51:39
+**Generated:** 2026-10-12 23:01:53
 **Category:** SaaS (General)
 **Design Dials:** Variance 3/10 (Centered / Minimal) | Motion 3/10 (Subtle) | Density 7/10 (Standard)
 
@@ -19,34 +19,35 @@
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#2563EB` | `--color-primary` |
+| Primary | `#1E3A5F` | `--color-primary` |
 | On Primary | `#FFFFFF` | `--color-on-primary` |
-| Secondary | `#3B82F6` | `--color-secondary` |
-| On Secondary | `#000000` | `--color-on-secondary` |
+| Secondary | `#304A91` | `--color-secondary` |
+| On Secondary | `#FFFFFF` | `--color-on-secondary` |
 | Accent/CTA | `#EA580C` | `--color-accent` |
 | On Accent/CTA | `#000000` | `--color-on-accent` |
 | Background | `#F8FAFC` | `--color-background` |
 | Foreground | `#1E293B` | `--color-foreground` |
 | Card | `#FFFFFF` | `--color-card` |
 | Card Foreground | `#1E293B` | `--color-card-foreground` |
-| Muted | `#E9EFF8` | `--color-muted` |
+| Muted | `#D5DDE9` | `--color-muted` |
 | Muted Foreground | `#475569` | `--color-muted-foreground` |
-| Border | `#E2E8F0` | `--color-border` |
+| Border | `#CED7E2` | `--color-border` |
 | Destructive | `#DC2626` | `--color-destructive` |
 | On Destructive | `#FFFFFF` | `--color-on-destructive` |
-| Ring | `#2563EB` | `--color-ring` |
+| Ring | `#1E3A5F` | `--color-ring` |
 
-**Color Notes:** Trust blue + orange CTA contrast [Accent adjusted from #F97316]
+**Color Notes:** Institutional navy + orange CTA contrast [Primary deepened from #2563EB to #1E3A5F; Secondary/Border/Muted re-tuned to the new primary's hue; Accent unchanged]
 
 ### Typography
 
-- **Heading Font:** Plus Jakarta Sans
+- **Heading Font:** Outfit
 - **Body Font:** Plus Jakarta Sans
-- **Mood:** friendly, modern, saas, clean, approachable, professional
-- **Google Fonts:** [Plus Jakarta Sans + Plus Jakarta Sans](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap)
+- **Mood:** confident, geometric, bold, institutional, modern, professional
+- **Google Fonts:** [Outfit + Plus Jakarta Sans](https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap)
 
 **CSS Import:**
 ```css
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 ```
 
@@ -99,8 +100,8 @@
 /* Secondary Button */
 .btn-secondary {
   background: transparent;
-  color: #2563EB;
-  border: 2px solid #2563EB;
+  color: #1E3A5F;
+  border: 2px solid #1E3A5F;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -139,9 +140,9 @@
 }
 
 .input:focus {
-  border-color: #2563EB;
+  border-color: #1E3A5F;
   outline: none;
-  box-shadow: 0 0 0 3px #2563EB20;
+  box-shadow: 0 0 0 3px #1E3A5F20;
 }
 ```
 
