@@ -3,7 +3,8 @@ import { getDb } from "@/lib/db/client";
 import { createSampleDataProvider } from "@/lib/data/sample-provider";
 import { runModelTurn } from "@/lib/agent/model-client";
 import { SESSION_COOKIE_NAME, resolveAccessCodeId, requireSessionSecret } from "../_lib/session";
-import { handleCreateReport, listReports, type ReportStreamEvent } from "./logic";
+import { toSseStream } from "../_lib/sse-stream";
+import { handleCreateReport, listReports } from "./logic";
 
 export async function GET(request: NextRequest) {
   const accessCodeId = resolveAccessCodeId(request.cookies.get(SESSION_COOKIE_NAME)?.value, requireSessionSecret());
@@ -15,23 +16,6 @@ export async function GET(request: NextRequest) {
 // this bounds the worst case explicitly rather than relying on whatever
 // Vercel's unstated default happens to be (plan.md Step 11, spec C3).
 export const maxDuration = 300;
-
-function toSseStream(events: AsyncGenerator<ReportStreamEvent, void>): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder();
-  return new ReadableStream({
-    async pull(controller) {
-      const { value, done } = await events.next();
-      if (done) {
-        controller.close();
-        return;
-      }
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify(value)}\n\n`));
-    },
-    async cancel() {
-      await events.return(undefined);
-    },
-  });
-}
 
 export async function POST(request: NextRequest) {
   const accessCodeId = resolveAccessCodeId(request.cookies.get(SESSION_COOKIE_NAME)?.value, requireSessionSecret());
