@@ -32,21 +32,34 @@ export default async function AdminPage() {
       <h1 className="text-2xl font-semibold text-(--color-foreground)">Overview</h1>
 
       <section className="flex flex-wrap gap-4">
-        <div className="rounded-lg border border-(--color-border) bg-(--color-card) p-6">
+        <div className="min-w-[220px] rounded-lg border border-(--color-border) bg-(--color-card) p-6 shadow-sm">
           <p className="text-sm text-(--color-muted-foreground)">Database</p>
-          <p
-            className={
-              overview.health === "ok"
-                ? "text-lg font-semibold text-(--color-foreground)"
-                : "text-lg font-semibold text-(--color-destructive)"
-            }
-          >
-            {overview.health === "ok" ? "Healthy" : "Unavailable"}
-          </p>
+          <div className="mt-2 flex items-center gap-2">
+            {overview.health === "ok" ? (
+              <svg aria-hidden="true" viewBox="0 0 20 20" className="h-5 w-5 shrink-0 fill-(--color-primary)">
+                <path d="M10 1a9 9 0 100 18 9 9 0 000-18zm4.28 6.53-5 5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.97 1.97 4.47-4.47a.75.75 0 1 1 1.06 1.06z" />
+              </svg>
+            ) : (
+              <svg aria-hidden="true" viewBox="0 0 20 20" className="h-5 w-5 shrink-0 fill-(--color-destructive)">
+                <path d="M10 1a9 9 0 100 18 9 9 0 000-18zm0 4a1 1 0 0 1 1 1v5a1 1 0 0 1-2 0V6a1 1 0 0 1 1-1zm0 9.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5z" />
+              </svg>
+            )}
+            <p
+              className={
+                overview.health === "ok"
+                  ? "font-heading text-3xl font-bold text-(--color-foreground)"
+                  : "font-heading text-3xl font-bold text-(--color-destructive)"
+              }
+            >
+              {overview.health === "ok" ? "Healthy" : "Unavailable"}
+            </p>
+          </div>
         </div>
-        <div className="rounded-lg border border-(--color-border) bg-(--color-card) p-6">
+        <div className="min-w-[220px] rounded-lg border border-(--color-border) bg-(--color-card) p-6 shadow-sm">
           <p className="text-sm text-(--color-muted-foreground)">Spend this month</p>
-          <p className="text-lg font-semibold text-(--color-foreground)">${overview.monthlySpendUsd.toFixed(2)}</p>
+          <p className="mt-2 font-heading text-3xl font-bold text-(--color-foreground)">
+            ${overview.monthlySpendUsd.toFixed(2)}
+          </p>
         </div>
       </section>
 
