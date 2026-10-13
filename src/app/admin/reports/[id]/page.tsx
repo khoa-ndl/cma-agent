@@ -21,9 +21,16 @@ export default async function AdminReportPage(props: PageProps<"/admin/reports/[
     notFound();
   }
 
+  const body = result.body as ReportBody;
+
   return (
     <main className="flex flex-1 flex-col items-center gap-8 px-4 py-16">
-      <ReportView reportId={id} initial={result.body as ReportBody} apiBasePath="/api/admin/reports" />
+      <ReportView
+        reportId={id}
+        initial={body}
+        apiBasePath="/api/admin/reports"
+        mapPositions={body.mapPositions}
+      />
     </main>
   );
 }

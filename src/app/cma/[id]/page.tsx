@@ -29,9 +29,11 @@ export default async function ReportPage(props: PageProps<"/cma/[id]">) {
     notFound();
   }
 
+  const body = result.body as ReportBody;
+
   return (
     <main className="flex flex-1 flex-col items-center gap-8 px-4 py-16">
-      <ReportView reportId={id} initial={result.body as ReportBody} />
+      <ReportView reportId={id} initial={body} mapPositions={body.mapPositions} />
     </main>
   );
 }
