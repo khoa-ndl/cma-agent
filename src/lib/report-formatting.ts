@@ -83,3 +83,30 @@ export function layoutCompMap(subject: LatLng, comps: Array<LatLng & { listingKe
     radiusMiles,
   };
 }
+
+// Assigns each comp/subject listing a bundled stock photo (spec screens 3-5
+// comp cards and PDF): the comp-sale dataset is entirely synthetic, so these
+// are generic, properly-licensed exterior photos -- not real photos of real
+// addresses -- bucketed by property sub-type. See
+// public/images/properties/SOURCES.md for licensing. Shared between the web
+// results page and the PDF so the same listing always gets the same photo in
+// both renderings.
+const PHOTO_BUCKETS: Record<string, { name: string; count: number }> = {
+  SingleFamilyResidence: { name: "single-family", count: 6 },
+  Condominium: { name: "condo", count: 6 },
+  Townhouse: { name: "townhouse", count: 6 },
+};
+
+export function photoForListing(listingKey: string, propertySubType: string): string {
+  const bucket = PHOTO_BUCKETS[propertySubType] ?? PHOTO_BUCKETS.SingleFamilyResidence;
+
+  // Simple deterministic string hash (djb2) -- no security property needed,
+  // only a stable, well-spread distribution across each bucket's photos.
+  let hash = 5381;
+  for (let i = 0; i < listingKey.length; i++) {
+    hash = (hash * 33) ^ listingKey.charCodeAt(i);
+  }
+  const index = Math.abs(hash) % bucket.count;
+
+  return `/images/properties/${bucket.name}-${index + 1}.jpg`;
+}

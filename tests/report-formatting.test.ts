@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { layoutCompMap } from "@/lib/report-formatting";
+import { layoutCompMap, photoForListing } from "@/lib/report-formatting";
 
 const SUBJECT = { latitude: 47.67, longitude: -122.38 };
 
@@ -43,5 +43,25 @@ describe("layoutCompMap", () => {
     const layout = layoutCompMap(SUBJECT, [{ listingKey: "Far", latitude: SUBJECT.latitude + 5, longitude: SUBJECT.longitude }]);
     expect(layout.pins[0].y).toBeGreaterThanOrEqual(0);
     expect(layout.pins[0].y).toBeLessThanOrEqual(200);
+  });
+});
+
+describe("photoForListing", () => {
+  it("is deterministic -- the same listing key always returns the same photo", () => {
+    const first = photoForListing("WA-000123", "SingleFamilyResidence");
+    const second = photoForListing("WA-000123", "SingleFamilyResidence");
+    expect(first).toBe(second);
+  });
+
+  it("returns a photo from the matching sub-type bucket", () => {
+    expect(photoForListing("WA-000001", "Townhouse")).toContain("townhouse");
+    expect(photoForListing("WA-000001", "Condominium")).toContain("condo");
+  });
+
+  it("spreads across the bucket rather than always returning the first photo", () => {
+    const photos = new Set(
+      Array.from({ length: 20 }, (_, i) => photoForListing(`WA-${i.toString().padStart(6, "0")}`, "SingleFamilyResidence")),
+    );
+    expect(photos.size).toBeGreaterThan(1);
   });
 });
