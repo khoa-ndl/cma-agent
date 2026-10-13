@@ -136,6 +136,7 @@ export function NewCmaForm({
       yearBuilt: match.yearBuilt,
       garageSpaces: match.garageSpaces,
       propertyCondition: match.propertyCondition,
+      sourceListingKey: match.listingKey,
     });
   }
 
@@ -346,8 +347,21 @@ export function NewCmaForm({
           <div
             ref={dialogRef}
             tabIndex={-1}
-            className="flex w-[90%] max-w-md flex-col gap-4 rounded-2xl bg-(--color-card) p-8 shadow-xl outline-none"
+            className="relative flex w-[90%] max-w-md flex-col gap-4 rounded-2xl bg-(--color-card) p-8 shadow-xl outline-none"
           >
+            {dismissible && (
+              <button
+                type="button"
+                onClick={resetForm}
+                aria-label="Close"
+                className="absolute top-4 right-4 cursor-pointer rounded-lg p-1 text-(--color-muted-foreground) transition-opacity duration-200 hover:opacity-70"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                </svg>
+              </button>
+            )}
+
             {phase === "running" && (
               <>
                 <h2 className="text-lg font-semibold text-(--color-foreground)">Working on your CMA…</h2>
@@ -387,7 +401,22 @@ export function NewCmaForm({
 
             {phase === "failed" && (
               <>
-                <h2 className="text-lg font-semibold text-(--color-destructive)">This report didn&apos;t complete</h2>
+                <div className="flex items-center gap-3 pr-6">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-6 w-6 shrink-0 text-(--color-destructive)"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <h2 className="text-lg font-semibold text-(--color-destructive)">This report didn&apos;t complete</h2>
+                </div>
                 <p className="text-sm text-(--color-muted-foreground)">
                   {unmetered
                     ? "Something went wrong partway through. You can start a new report."

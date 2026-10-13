@@ -90,7 +90,12 @@ async function handleSearchComps(
   const parsed = searchCompsInputSchema.safeParse(input);
   if (!parsed.success) return { content: `Invalid input: ${parsed.error.message}`, isError: true };
 
-  const candidates = await searchCandidates(provider, subject, { ...parsed.data, asOf, limit: 50 });
+  const candidates = await searchCandidates(provider, subject, {
+    ...parsed.data,
+    asOf,
+    limit: 50,
+    excludeListingKey: subject.sourceListingKey,
+  });
   const summary = candidates.map((c) => ({
     listingKey: c.property.listingKey,
     address: c.property.unparsedAddress,

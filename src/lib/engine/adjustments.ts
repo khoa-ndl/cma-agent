@@ -29,6 +29,12 @@ export interface Subject {
   yearBuilt: number;
   garageSpaces: number;
   propertyCondition: Property["propertyCondition"];
+  /** The dataset row this subject was pre-filled from, if any (address
+   * autocomplete sets it; a freely-typed subject has none). Excluded from
+   * its own comp search -- found in review: without this, the subject's
+   * own sale could come back as a distance-0 "comp" for itself. Never
+   * sent to the model (see loop.ts's buildInitialMessage). */
+  sourceListingKey?: string;
 }
 
 // Validates subject facts from the API request body (spec 8: "structured
@@ -46,6 +52,7 @@ export const subjectInputSchema = z.object({
   yearBuilt: z.number().int().min(1800).max(2100),
   garageSpaces: z.number().int().min(0).max(20),
   propertyCondition: z.enum(propertyCondition.enumValues),
+  sourceListingKey: z.string().min(1).optional(),
 }) satisfies z.ZodType<Subject>;
 
 export interface AdjustmentLineItem {

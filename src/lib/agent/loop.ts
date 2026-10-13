@@ -76,7 +76,12 @@ function toContentBlockParam(block: ModelContentBlock): Anthropic.Beta.Messages.
 }
 
 function buildInitialMessage(subject: Subject): string {
-  return `Analyze this subject property and produce a CMA.\n\nSubject property:\n${JSON.stringify(subject, null, 2)}`;
+  // sourceListingKey is server-side bookkeeping (excludes the subject from
+  // its own comp search, see tools.ts) -- not a property fact, so it's
+  // never shown to the model.
+  const { sourceListingKey, ...promptSubject } = subject;
+  void sourceListingKey; // deliberately omitted from the prompt, see above
+  return `Analyze this subject property and produce a CMA.\n\nSubject property:\n${JSON.stringify(promptSubject, null, 2)}`;
 }
 
 export async function* runCmaAgent(

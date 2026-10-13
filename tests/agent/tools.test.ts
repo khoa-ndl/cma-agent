@@ -108,6 +108,29 @@ describe("agent tools", () => {
     expect(candidates[0]).toHaveProperty("similarityScore");
   });
 
+  it("search_comps excludes the subject's own source listing (found in review)", async () => {
+    // FX-001 shares SUBJECT's coordinates, area, sub-type and living area --
+    // exactly what happens when the address autocomplete pre-fills a
+    // subject from a real dataset row. Without the exclusion, that row
+    // comes back as a distance-0, near-perfect "comp": the property
+    // compared against its own historical sale.
+    const provider = createSampleDataProvider(testDb.db);
+    const state = createRunState();
+    const subjectFromListing: Subject = { ...SUBJECT, sourceListingKey: "FX-001" };
+    const { handlers } = createTools(subjectFromListing, provider, AS_OF, state);
+
+    const result = await handlers.search_comps({
+      radiusMiles: 10,
+      monthsBack: 12,
+      sizeBandPercent: 50,
+      statuses: ["Closed"],
+    });
+    expect(result.isError).toBeUndefined();
+    const candidates: Array<{ listingKey: string }> = JSON.parse(result.content);
+    expect(candidates.length).toBeGreaterThan(0);
+    expect(candidates.some((c) => c.listingKey === "FX-001")).toBe(false);
+  });
+
   it("search_comps rejects invalid input instead of throwing", async () => {
     const { handlers } = setup();
     const result = await handlers.search_comps({ radiusMiles: -1 });
