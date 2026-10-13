@@ -26,7 +26,7 @@ export default async function AdminReportsPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-6 px-6 py-16">
-      <h1 className="text-2xl font-semibold text-(--color-foreground)">Reports &amp; costs</h1>
+      <h1 className="font-heading text-2xl font-semibold text-(--color-foreground)">Reports &amp; costs</h1>
 
       {reports.length === 0 ? (
         <p className="text-(--color-muted-foreground)">No reports yet.</p>

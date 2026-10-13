@@ -20,7 +20,7 @@ export default async function AdminCodesPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-8 px-6 py-16">
-      <h1 className="text-2xl font-semibold text-(--color-foreground)">Codes</h1>
+      <h1 className="font-heading text-2xl font-semibold text-(--color-foreground)">Codes</h1>
 
       <IssueCodeForm />
 

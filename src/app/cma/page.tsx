@@ -31,7 +31,7 @@ export default async function CmaHomePage() {
 
   return (
     <main className="flex flex-1 flex-col gap-8 px-6 py-16">
-      <h1 className="text-2xl font-semibold text-(--color-foreground)">Home</h1>
+      <h1 className="font-heading text-2xl font-semibold text-(--color-foreground)">Home</h1>
 
       <section className="rounded-lg border border-(--color-border) bg-(--color-card) p-6">
         <p className="text-sm text-(--color-muted-foreground)">Credit balance</p>
