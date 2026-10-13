@@ -127,6 +127,10 @@ Each step: write tests first and confirm they fail, implement until they pass, r
 - **Deferred (documented debt, not blocking):** `getAdminReport`/`renderAdminReportPdf`/`listAllReports`/`handleCreateOperatorReport` each duplicate their end-user counterpart's mapping/parsing logic almost verbatim; `admin/layout.tsx` vs `cma/layout.tsx` are the same sidebar shell twice; `sweepStaleRuns`' operator-exclusion is a label string-match rather than a dedicated column (matches spec.md's own accepted-risk posture for Release 1, DC3); `NewCmaForm`'s `creditsBalance` going optional lost a compile-time guard for metered callers (2 call sites today, both correct); a pre-existing, not-introduced-by-this-diff gap where a revoked session's still-valid cookie can keep using address search (low severity — sample data only).
 - **Proof:** 227 tests, `next build` clean. Every fix re-verified live: the sentinel-login and logout-race fixes with direct curl checks before/after; the full Playwright walkthrough and the D9/D12 check both rerun clean after the 16-site helper refactor.
 
+### Post-ship: production incident, 2026-10-11 to 2026-10-12
+
+Merging to `main` auto-deployed this milestone straight to production (no preview gate — see `../plan.md`'s Step 11 finding), which surfaced a chain of production-only bugs over the following day: the production database had never been migrated, `proxy.ts`'s cookie refresh broke this feature's own streaming report creation (P7/P8), and an uncaught error in the streaming generators (shared with the main plan's Step 8) left reports stuck `running` with no log. Full detail and fixes: `../plan.md`, "Post-ship incident: production outage" (after Step 11).
+
 ## Risks
 
 | Risk | Mitigation |
