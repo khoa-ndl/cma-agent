@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Each Superpowers worktree is its own checkout with its own lint state.
+    ".claude/worktrees/**",
   ]),
 ]);
 

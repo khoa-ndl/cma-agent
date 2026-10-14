@@ -13,6 +13,9 @@ coverage/
 *.tsbuildinfo
 next-env.d.ts
 
+# Superpowers git worktrees (each is its own checkout with its own .git)
+.claude/worktrees/
+
 # Logs and keys
 npm-debug.log*
 *.pem
