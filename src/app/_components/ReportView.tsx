@@ -101,13 +101,13 @@ export function ReportView({
         <h2 className="mb-4 font-heading text-xl font-bold text-(--color-foreground)">
           {subject.unparsedAddress ?? subject.mlsAreaMajor}
         </h2>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4">
           {subjectStatTiles(subject).map((stat) => (
             <div key={stat.label} className="rounded-lg border border-(--color-border) bg-(--color-card) p-4">
               <p className="text-xs font-semibold tracking-wide text-(--color-muted-foreground) uppercase">
                 {stat.label}
               </p>
-              <p className="font-heading text-lg font-bold text-(--color-foreground)">{stat.value}</p>
+              <p className="font-heading text-lg font-bold break-words text-(--color-foreground)">{stat.value}</p>
             </div>
           ))}
         </div>
@@ -166,7 +166,7 @@ export function ReportView({
       <section>
         <h2 className="mb-3 text-lg font-semibold text-(--color-foreground)">Comparable sales</h2>
         <div className="overflow-x-auto rounded-lg border border-(--color-border) bg-(--color-card)">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm [&_td:first-child]:pl-4 [&_th:first-child]:pl-4">
             <thead className="bg-(--color-background) text-(--color-muted-foreground)">
               <tr>
                 <th className="py-2 pr-4">Photo</th>
@@ -205,7 +205,7 @@ export function ReportView({
       <section>
         <h2 className="mb-3 text-lg font-semibold text-(--color-foreground)">Adjustment grid</h2>
         <div className="overflow-x-auto rounded-lg border border-(--color-border) bg-(--color-card)">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm [&_td:first-child]:pl-4 [&_th:first-child]:pl-4">
             <thead className="bg-(--color-background) text-(--color-muted-foreground)">
               <tr>
                 <th className="py-2 pr-4 whitespace-nowrap">Address</th>

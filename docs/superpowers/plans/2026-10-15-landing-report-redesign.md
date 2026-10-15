@@ -26,7 +26,7 @@
 - A subject with no `unparsedAddress` (no address-autocomplete match) — the report view's heading must still fall back to `mlsAreaMajor`, exactly as it does today; this plan must not regress that existing fallback while restyling around it.
 - A report with exactly one selected comp (the engine's own floor — `submitCmaInputSchema` allows as few as 1) — the comparable sales table and adjustment grid must render one row cleanly, not assume ≥2 rows anywhere in spacing/dividers.
 - A long `propertySubType`/address string (e.g. a long street name) inside a stat tile or the page heading — must wrap, not clip or overflow its container.
-- The landing page at a narrow (phone-width) viewport — the hero's two-column split must collapse to a single column with the photo above the form, no horizontal scroll.
+- The landing page at a narrow (phone-width) viewport — the hero's two-column split must collapse to a single column (content/form first, photo below, matching the mockup's DOM order and keeping the primary action above the fold), no horizontal scroll.
 
 ---
 
