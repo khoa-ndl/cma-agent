@@ -40,7 +40,7 @@ export default async function HomePage() {
       </header>
 
       <div className="flex flex-1 flex-wrap">
-        <div className="flex min-w-[420px] flex-1 flex-col justify-center gap-9 px-16 py-20">
+        <div className="flex min-w-[280px] flex-1 flex-col justify-center gap-9 px-10 py-16">
           <div className="flex flex-col gap-4">
             <span className="text-xs font-bold tracking-wider text-(--color-primary) uppercase">
               AI Comparative Market Analysis
@@ -75,7 +75,7 @@ export default async function HomePage() {
           <AccessForm />
         </div>
 
-        <div className="relative min-w-[360px] flex-1 overflow-hidden">
+        <div className="relative min-w-[280px] flex-1 overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element -- static marketing chrome, not a Next/Image-managed asset pipeline target */}
           <img
             src="/images/properties/single-family-2.jpg"
