@@ -83,9 +83,16 @@ describe("ReportDocument", () => {
 
     const fullText = pages.join("\n");
 
-    // Cover + subject.
+    // Cover + subject summary.
     expect(fullText).toContain("Ballard");
-    expect(fullText).toContain("SingleFamilyResidence");
+
+    // Subject Property section: every data point, humanized rather than the
+    // raw enum value.
+    expect(fullText).toContain("Single Family Residence");
+    expect(fullText).toContain("2,000");
+    expect(fullText).toContain("5,000");
+    expect(fullText).toContain("Good");
+    expect(fullText).toContain("Address not on file");
 
     // Comps table.
     expect(fullText).toContain("4200 Ballard Ave NW");

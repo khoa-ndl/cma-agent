@@ -14,6 +14,7 @@ import {
   ADJUSTMENT_FACTORS,
   compactCurrency,
   currency,
+  humanizeEnum,
   layoutCompMap,
   photoForListing,
   type CompMapLayout,
@@ -31,12 +32,36 @@ Font.register({
   ],
 });
 
+// Body text/weight range -- bundled the same way as Outfit above, since
+// react-pdf can't read a Google Fonts <link> any more than it can read CSS
+// variables. Previously this file left body text on react-pdf's built-in
+// Helvetica, which isn't the product's own body font at all; every other
+// brand surface (web, Outfit headings here) already uses Plus Jakarta Sans.
+// Resolved from process.cwd() for the same Turbopack/__dirname reason as
+// the comment on FONT_DIR below used to say about Outfit.
+const FONT_DIR = path.join(process.cwd(), "src/lib/pdf/fonts");
+Font.register({
+  family: "Plus Jakarta Sans",
+  fonts: [
+    { src: path.join(FONT_DIR, "PlusJakartaSans-Regular.ttf"), fontWeight: 400 },
+    { src: path.join(FONT_DIR, "PlusJakartaSans-Medium.ttf"), fontWeight: 500 },
+    { src: path.join(FONT_DIR, "PlusJakartaSans-SemiBold.ttf"), fontWeight: 600 },
+    { src: path.join(FONT_DIR, "PlusJakartaSans-Bold.ttf"), fontWeight: 700 },
+  ],
+});
+
 // Task 1's --color-primary (deep navy). react-pdf styles can't read CSS
 // variables, so this is hardcoded here and must be kept in sync by eye with
 // src/app/globals.css, same as the other hardcoded colors in this file.
 const COLOR_PRIMARY = "#1e3a5f";
 const COLOR_ACCENT = "#ea580c";
 const COLOR_MUTED = "#d5dde9";
+const COLOR_PRIMARY_MUTED = "#c3cedb";
+const COLOR_FOREGROUND = "#1e293b";
+const COLOR_MUTED_FOREGROUND = "#475569";
+const COLOR_BORDER = "#e2e8f0";
+const COLOR_STRIPE = "#f8fafc";
+const COLOR_ON_PRIMARY = "#ffffff";
 
 const RATE_ROWS: Array<[keyof ReturnType<typeof getAdjustmentRates>, string, (n: number) => string]> = [
   ["livingAreaPerSqft", "Living area", (n) => `${currency(n)} / sq ft`],
@@ -50,42 +75,78 @@ const RATE_ROWS: Array<[keyof ReturnType<typeof getAdjustmentRates>, string, (n:
 ];
 
 const styles = StyleSheet.create({
-  page: { padding: 48, paddingBottom: 72, fontSize: 10, fontFamily: "Helvetica", color: "#1e293b" },
-  coverPage: {
-    padding: 48,
-    paddingBottom: 72,
-    fontFamily: "Helvetica",
-    color: "#1e293b",
-    justifyContent: "center",
+  page: { padding: 48, paddingBottom: 72, fontSize: 10, fontFamily: "Plus Jakarta Sans", color: COLOR_FOREGROUND },
+  coverPage: { padding: 0, paddingBottom: 72, fontFamily: "Plus Jakarta Sans", color: COLOR_FOREGROUND },
+  coverBand: { backgroundColor: COLOR_PRIMARY, paddingHorizontal: 48, paddingVertical: 40 },
+  coverLabel: {
+    fontSize: 11,
+    color: COLOR_PRIMARY_MUTED,
+    textTransform: "uppercase",
+    letterSpacing: 2,
+    marginBottom: 10,
+    fontWeight: 600,
   },
-  coverLabel: { fontSize: 11, color: "#475569", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
-  coverTitle: { fontSize: 28, fontFamily: "Outfit", fontWeight: 800, marginBottom: 16 },
-  coverSubject: { fontSize: 13, color: "#475569", lineHeight: 1.6 },
-  h1: { fontSize: 16, fontFamily: "Outfit", fontWeight: "bold", marginBottom: 8, marginTop: 20 },
-  h2: { fontSize: 12, fontFamily: "Helvetica-Bold", marginBottom: 6 },
+  coverTitle: { fontSize: 28, fontFamily: "Outfit", fontWeight: 800, color: COLOR_ON_PRIMARY, marginBottom: 10 },
+  coverAccentRule: { height: 4, width: 64, backgroundColor: COLOR_ACCENT },
+  coverBody: { padding: 48, paddingTop: 32 },
+  coverSubject: { fontSize: 13, color: COLOR_MUTED_FOREGROUND, lineHeight: 1.7 },
+  sectionHeaderRow: { flexDirection: "row", alignItems: "center", marginTop: 20, marginBottom: 8 },
+  sectionHeaderBar: { width: 4, height: 14, backgroundColor: COLOR_ACCENT, marginRight: 8 },
+  h1: { fontSize: 16, fontFamily: "Outfit", fontWeight: "bold" },
+  h2: { fontSize: 12, fontWeight: 600, marginBottom: 6 },
   p: { fontSize: 10, lineHeight: 1.5, marginBottom: 4 },
-  row: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#e2e8f0", paddingVertical: 4, alignItems: "center" },
-  headerRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#1e293b", paddingVertical: 4 },
-  headerCell: { fontFamily: "Helvetica-Bold", fontSize: 9, color: "#475569" },
+  row: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR_BORDER,
+    paddingVertical: 4,
+    alignItems: "center",
+  },
+  rowAlt: { backgroundColor: COLOR_STRIPE },
+  headerRow: { flexDirection: "row", borderBottomWidth: 1.5, borderBottomColor: COLOR_FOREGROUND, paddingVertical: 4 },
+  headerCell: {
+    fontWeight: 600,
+    fontSize: 9,
+    color: COLOR_MUTED_FOREGROUND,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
   cell: { fontSize: 9 },
-  recommendation: { borderWidth: 1, borderColor: "#e2e8f0", padding: 12, marginBottom: 12 },
-  recommendationValue: { fontSize: 18, fontFamily: "Helvetica-Bold", color: COLOR_PRIMARY, marginBottom: 2 },
-  subjectSection: {
-    borderWidth: 1.5,
-    borderColor: COLOR_PRIMARY,
-    backgroundColor: "#f0f4f8",
+  recommendation: {
+    borderWidth: 1,
+    borderColor: COLOR_BORDER,
+    borderLeftWidth: 4,
+    borderLeftColor: COLOR_ACCENT,
+    backgroundColor: COLOR_MUTED,
     padding: 12,
     marginBottom: 12,
   },
-  subjectLabel: { fontSize: 9, fontFamily: "Helvetica-Bold", color: COLOR_PRIMARY, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
-  subjectAddress: { fontSize: 15, fontFamily: "Outfit", fontWeight: "bold", marginBottom: 4 },
-  subjectFacts: { fontSize: 10, color: "#475569" },
+  recommendationValue: { fontSize: 18, fontWeight: 700, color: COLOR_PRIMARY, marginBottom: 2 },
+  statGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -6 },
+  statTile: { width: "33.33%", padding: 6 },
+  statTileInner: {
+    borderWidth: 1,
+    borderColor: COLOR_BORDER,
+    borderLeftWidth: 3,
+    borderLeftColor: COLOR_PRIMARY,
+    padding: 10,
+  },
+  statLabel: {
+    fontSize: 8,
+    fontWeight: 600,
+    color: COLOR_MUTED_FOREGROUND,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  statValue: { fontSize: 12, fontWeight: 700, color: COLOR_FOREGROUND },
+  subjectAddress: { fontSize: 15, fontFamily: "Outfit", fontWeight: "bold", marginBottom: 8 },
   mapSection: { marginBottom: 12, alignItems: "center" },
-  mapCaption: { fontSize: 8, color: "#475569", marginTop: 4, textAlign: "center" },
-  mapPinLabel: { fontSize: 7, fill: "#1e293b", textAnchor: "middle" },
+  mapCaption: { fontSize: 8, color: COLOR_MUTED_FOREGROUND, marginTop: 4, textAlign: "center" },
+  mapPinLabel: { fontSize: 7, fill: COLOR_FOREGROUND, textAnchor: "middle" },
   photoCell: { width: "16%", paddingRight: 6 },
   photoThumbnail: { width: 64, height: 48, borderRadius: 4, objectFit: "cover" },
-  photoCaption: { fontSize: 6.5, color: "#475569", marginTop: 2 },
+  photoCaption: { fontSize: 6.5, color: COLOR_MUTED_FOREGROUND, marginTop: 2 },
   footer: {
     position: "absolute",
     bottom: 24,
@@ -93,15 +154,28 @@ const styles = StyleSheet.create({
     right: 48,
     textAlign: "center",
     fontSize: 8,
-    color: "#475569",
+    color: COLOR_MUTED_FOREGROUND,
   },
+  footerPage: { position: "absolute", bottom: 24, right: 48, fontSize: 8, color: COLOR_MUTED_FOREGROUND },
 });
 
 function Disclosures() {
   return (
-    <View style={styles.footer} fixed>
-      <Text>{SAMPLE_DATA_DISCLOSURE}</Text>
-      <Text>{NOT_APPRAISAL_DISCLOSURE}</Text>
+    <>
+      <View style={styles.footer} fixed>
+        <Text>{SAMPLE_DATA_DISCLOSURE}</Text>
+        <Text>{NOT_APPRAISAL_DISCLOSURE}</Text>
+      </View>
+      <Text style={styles.footerPage} fixed render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+    </>
+  );
+}
+
+function SectionHeader({ children }: { children: string }) {
+  return (
+    <View style={styles.sectionHeaderRow}>
+      <View style={styles.sectionHeaderBar} />
+      <Text style={styles.h1}>{children}</Text>
     </View>
   );
 }
@@ -112,33 +186,59 @@ function Disclosures() {
 // the Subject TS interface itself.
 type SubjectWithAddress = Subject & { unparsedAddress?: string };
 
-function CoverPage({ subject }: { subject: Subject }) {
+function CoverPage({ subject }: { subject: SubjectWithAddress }) {
   return (
     <Page size="A4" style={styles.coverPage}>
-      <Text style={styles.coverLabel}>Comparative Market Analysis</Text>
-      <Text style={styles.coverTitle}>CMA Agent Report</Text>
-      <Text style={styles.coverSubject}>
-        {subject.mlsAreaMajor} · {subject.propertySubType}
-        {"\n"}
-        {subject.bedroomsTotal} bed / {subject.bathroomsTotalInteger} bath · {subject.livingArea.toLocaleString()} sq
-        ft · built {subject.yearBuilt}
-        {"\n"}
-        Condition: {subject.propertyCondition}
-      </Text>
+      <View style={styles.coverBand}>
+        <Text style={styles.coverLabel}>Comparative Market Analysis</Text>
+        <Text style={styles.coverTitle}>CMA Agent Report</Text>
+        <View style={styles.coverAccentRule} />
+      </View>
+      <View style={styles.coverBody}>
+        <Text style={styles.coverSubject}>
+          {subject.unparsedAddress ?? subject.mlsAreaMajor}
+          {"\n"}
+          {humanizeEnum(subject.propertySubType)} · {subject.bedroomsTotal} bed / {subject.bathroomsTotalInteger} bath
+          {"\n"}
+          {subject.livingArea.toLocaleString()} sq ft · built {subject.yearBuilt} · {subject.propertyCondition}{" "}
+          condition
+        </Text>
+      </View>
       <Disclosures />
     </Page>
   );
 }
 
+// Every fact the engine measures the subject against (spec 4.2) -- not just
+// the handful that fit a one-line summary, since this is the one property
+// a reader of the report will actually recognize on sight.
 function SubjectSection({ subject }: { subject: SubjectWithAddress }) {
+  const tiles: Array<[string, string]> = [
+    ["Address", subject.unparsedAddress ?? "Address not on file"],
+    ["Neighborhood / Area", subject.mlsAreaMajor],
+    ["Property Type", humanizeEnum(subject.propertySubType)],
+    ["Bedrooms", String(subject.bedroomsTotal)],
+    ["Bathrooms", String(subject.bathroomsTotalInteger)],
+    ["Living Area", `${subject.livingArea.toLocaleString()} sq ft`],
+    ["Lot Size", subject.lotSizeSquareFeet ? `${subject.lotSizeSquareFeet.toLocaleString()} sq ft` : "Not on file"],
+    ["Year Built", String(subject.yearBuilt)],
+    ["Garage Spaces", String(subject.garageSpaces)],
+    ["Condition", subject.propertyCondition],
+  ];
   return (
-    <View style={styles.subjectSection}>
-      <Text style={styles.subjectLabel}>Subject Property</Text>
+    <View>
+      <SectionHeader>Subject Property</SectionHeader>
       <Text style={styles.subjectAddress}>{subject.unparsedAddress ?? subject.mlsAreaMajor}</Text>
-      <Text style={styles.subjectFacts}>
-        {subject.mlsAreaMajor} · {subject.propertySubType} · {subject.bedroomsTotal} bed /{" "}
-        {subject.bathroomsTotalInteger} bath · {subject.livingArea.toLocaleString()} sq ft
-      </Text>
+      <View style={styles.statGrid}>
+        {tiles.map(([label, value]) => (
+          <View key={label} style={styles.statTile}>
+            <View style={styles.statTileInner}>
+              <Text style={styles.statLabel}>{label}</Text>
+              <Text style={styles.statValue}>{value}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -150,7 +250,7 @@ function SubjectSection({ subject }: { subject: SubjectWithAddress }) {
 function CompMap({ layout, result }: { layout: CompMapLayout; result: CmaResult }) {
   return (
     <View style={styles.mapSection}>
-      <Text style={styles.h1}>Comp Map</Text>
+      <SectionHeader>Comp Map</SectionHeader>
       <Svg width={200} height={200} viewBox={`0 0 ${layout.viewBoxSize} ${layout.viewBoxSize}`}>
         <Rect x={0} y={0} width={layout.viewBoxSize} height={layout.viewBoxSize} rx={8} fill={COLOR_MUTED} />
         {layout.pins.map((pin) => {
@@ -178,7 +278,7 @@ function CompMap({ layout, result }: { layout: CompMapLayout; result: CmaResult 
 function ComparablesTable({ result, subject }: { result: CmaResult; subject: Subject }) {
   return (
     <View>
-      <Text style={styles.h1}>Comparable Sales</Text>
+      <SectionHeader>Comparable Sales</SectionHeader>
       <View style={styles.headerRow}>
         <Text style={[styles.headerCell, { width: "16%" }]}>Photo</Text>
         <Text style={[styles.headerCell, { width: "24%" }]}>Address</Text>
@@ -187,8 +287,8 @@ function ComparablesTable({ result, subject }: { result: CmaResult; subject: Sub
         <Text style={[styles.headerCell, { width: "16%" }]}>Adjustment</Text>
         <Text style={[styles.headerCell, { width: "16%" }]}>Adjusted value</Text>
       </View>
-      {result.selectedComps.map((comp) => (
-        <View key={comp.listingKey} style={styles.row} wrap={false}>
+      {result.selectedComps.map((comp, index) => (
+        <View key={comp.listingKey} style={[styles.row, index % 2 === 1 ? styles.rowAlt : undefined]} wrap={false}>
           <View style={styles.photoCell}>
             {/* react-pdf's Image has no `alt` prop -- it isn't an HTML <img>,
                 just named the same; the "Representative image" <Text> below
@@ -214,7 +314,7 @@ function ComparablesTable({ result, subject }: { result: CmaResult; subject: Sub
 function AdjustmentGrid({ result }: { result: CmaResult }) {
   return (
     <View>
-      <Text style={styles.h1}>Adjustment Grid</Text>
+      <SectionHeader>Adjustment Grid</SectionHeader>
       <View style={styles.headerRow}>
         <Text style={[styles.headerCell, { width: "24%" }]}>Address</Text>
         {ADJUSTMENT_FACTORS.map(([factor, label]) => (
@@ -223,10 +323,10 @@ function AdjustmentGrid({ result }: { result: CmaResult }) {
           </Text>
         ))}
       </View>
-      {result.selectedComps.map((comp) => {
+      {result.selectedComps.map((comp, index) => {
         const byFactor = Object.fromEntries(comp.adjustments.map((item) => [item.factor, item.amount]));
         return (
-          <View key={comp.listingKey} style={styles.row} wrap={false}>
+          <View key={comp.listingKey} style={[styles.row, index % 2 === 1 ? styles.rowAlt : undefined]} wrap={false}>
             <Text style={[styles.cell, { width: "24%" }]}>{comp.unparsedAddress}</Text>
             {ADJUSTMENT_FACTORS.map(([factor]) => (
               <Text key={factor} style={[styles.cell, { width: `${76 / ADJUSTMENT_FACTORS.length}%` }]}>
@@ -243,7 +343,7 @@ function AdjustmentGrid({ result }: { result: CmaResult }) {
 function Recommendation({ result }: { result: CmaResult }) {
   return (
     <View>
-      <Text style={styles.h1}>Pricing Recommendation</Text>
+      <SectionHeader>Pricing Recommendation</SectionHeader>
       <View style={styles.recommendation}>
         <Text style={styles.recommendationValue}>
           {currency(result.valueRange.low)} – {currency(result.valueRange.high)}
@@ -257,7 +357,7 @@ function Recommendation({ result }: { result: CmaResult }) {
 function RationaleSection({ result }: { result: CmaResult }) {
   return (
     <View>
-      <Text style={styles.h1}>Rationale</Text>
+      <SectionHeader>Rationale</SectionHeader>
       <Text style={styles.p}>{result.rationale}</Text>
       {result.excludedComps.length > 0 && (
         <View>
@@ -277,7 +377,7 @@ function MethodologyAppendix({ subject }: { subject: Subject }) {
   const rates = getAdjustmentRates(subject.mlsAreaMajor);
   return (
     <View break>
-      <Text style={styles.h1}>Methodology Appendix</Text>
+      <SectionHeader>Methodology Appendix</SectionHeader>
       <Text style={styles.p}>
         Adjustment rates for {subject.mlsAreaMajor}, applied per unit of difference between the subject and each
         comparable. A positive line item means the subject exceeds the comparable on that factor.
@@ -286,8 +386,8 @@ function MethodologyAppendix({ subject }: { subject: Subject }) {
         <Text style={[styles.headerCell, { width: "50%" }]}>Factor</Text>
         <Text style={[styles.headerCell, { width: "50%" }]}>Rate</Text>
       </View>
-      {RATE_ROWS.map(([key, label, format]) => (
-        <View key={key} style={styles.row}>
+      {RATE_ROWS.map(([key, label, format], index) => (
+        <View key={key} style={[styles.row, index % 2 === 1 ? styles.rowAlt : undefined]}>
           <Text style={[styles.cell, { width: "50%" }]}>{label}</Text>
           <Text style={[styles.cell, { width: "50%" }]}>{format(rates[key])}</Text>
         </View>

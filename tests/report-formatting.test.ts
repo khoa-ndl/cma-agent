@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { layoutCompMap, photoForListing } from "@/lib/report-formatting";
+import { humanizeEnum, layoutCompMap, photoForListing } from "@/lib/report-formatting";
 
 const SUBJECT = { latitude: 47.67, longitude: -122.38 };
 
@@ -63,5 +63,12 @@ describe("photoForListing", () => {
       Array.from({ length: 20 }, (_, i) => photoForListing(`WA-${i.toString().padStart(6, "0")}`, "SingleFamilyResidence")),
     );
     expect(photos.size).toBeGreaterThan(1);
+  });
+});
+
+describe("humanizeEnum", () => {
+  it("breaks a PascalCase enum value into separate words", () => {
+    expect(humanizeEnum("SingleFamilyResidence")).toBe("Single Family Residence");
+    expect(humanizeEnum("Condominium")).toBe("Condominium");
   });
 });

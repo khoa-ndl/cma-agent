@@ -18,6 +18,13 @@ export function currency(n: number): string {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 }
 
+// "SingleFamilyResidence" -> "Single Family Residence". Schema enums are
+// stored PascalCase; nothing downstream has had to display them word-broken
+// until now.
+export function humanizeEnum(value: string): string {
+  return value.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
 // Compact currency for the comp map's pin labels (e.g. "$450K") -- the
 // full currency() format above is too wide to sit next to a pin in a
 // 200x200 viewBox without overlapping neighbors. Shared between the web
