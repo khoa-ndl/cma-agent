@@ -57,7 +57,7 @@ export function AccessForm() {
           onChange={(e) => setCode(e.target.value)}
           disabled={submitting}
           aria-describedby={error ? "code-error" : undefined}
-          className="rounded-lg border border-(--color-border) px-4 py-3 text-base text-(--color-foreground) outline-none focus:border-(--color-ring) focus:ring-3 focus:ring-(--color-ring)/20"
+          className="rounded-lg border border-(--color-border) px-4 py-3.5 text-base text-(--color-foreground) outline-none focus:border-(--color-ring) focus:ring-3 focus:ring-(--color-ring)/20"
         />
         {error && (
           <p id="code-error" role="alert" className="text-sm text-(--color-destructive)">
