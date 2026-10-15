@@ -165,9 +165,9 @@ export function ReportView({
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-(--color-foreground)">Comparable sales</h2>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-lg border border-(--color-border) bg-(--color-card)">
           <table className="w-full text-left text-sm">
-            <thead className="text-(--color-muted-foreground)">
+            <thead className="bg-(--color-background) text-(--color-muted-foreground)">
               <tr>
                 <th className="py-2 pr-4">Photo</th>
                 <th className="py-2 pr-4">Address</th>
@@ -204,9 +204,9 @@ export function ReportView({
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-(--color-foreground)">Adjustment grid</h2>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-lg border border-(--color-border) bg-(--color-card)">
           <table className="w-full text-left text-sm">
-            <thead className="text-(--color-muted-foreground)">
+            <thead className="bg-(--color-background) text-(--color-muted-foreground)">
               <tr>
                 <th className="py-2 pr-4 whitespace-nowrap">Address</th>
                 <th className="py-2 pr-4 whitespace-nowrap">Total</th>
