@@ -113,53 +113,55 @@ export function ReportView({
         </div>
       </section>
 
-      {compMapLayout && (
-        <section className="rounded-lg border border-(--color-border) bg-(--color-card) p-6">
-          <h2 className="mb-3 text-lg font-semibold text-(--color-foreground)">Comp map</h2>
-          <svg
-            viewBox={`0 0 ${compMapLayout.viewBoxSize} ${compMapLayout.viewBoxSize}`}
-            className="mx-auto h-80 w-80"
-            role="img"
-            aria-label="Map of the subject property and comparable sales by relative location"
-          >
-            <rect
-              x={0}
-              y={0}
-              width={compMapLayout.viewBoxSize}
-              height={compMapLayout.viewBoxSize}
-              rx={8}
-              fill="var(--color-muted)"
-            />
-            {compMapLayout.pins.map((pin) => {
-              const comp = result.selectedComps.find((c) => c.listingKey === pin.listingKey);
-              return (
-                <g key={pin.listingKey}>
-                  <CompMapPin x={pin.x} y={pin.y} size={16} fill="var(--color-accent)" />
-                  {comp && (
-                    <text x={pin.x} y={pin.y + 13} textAnchor="middle" fontSize={8} fill="var(--color-foreground)">
-                      {compactCurrency(comp.adjustedValue)}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
-            <CompMapPin x={compMapLayout.subject.x} y={compMapLayout.subject.y} size={24} fill="var(--color-primary)" />
-          </svg>
-          <p className="mt-2 text-center text-xs text-(--color-muted-foreground)">
-            Subject property (navy) and comparable sales (orange) by approximate location
+      <div className="flex flex-wrap gap-6">
+        {compMapLayout && (
+          <section className="min-w-[280px] flex-1 rounded-lg border border-(--color-border) bg-(--color-card) p-6">
+            <h2 className="mb-3 text-lg font-semibold text-(--color-foreground)">Comp map</h2>
+            <svg
+              viewBox={`0 0 ${compMapLayout.viewBoxSize} ${compMapLayout.viewBoxSize}`}
+              className="mx-auto h-80 w-80"
+              role="img"
+              aria-label="Map of the subject property and comparable sales by relative location"
+            >
+              <rect
+                x={0}
+                y={0}
+                width={compMapLayout.viewBoxSize}
+                height={compMapLayout.viewBoxSize}
+                rx={8}
+                fill="var(--color-muted)"
+              />
+              {compMapLayout.pins.map((pin) => {
+                const comp = result.selectedComps.find((c) => c.listingKey === pin.listingKey);
+                return (
+                  <g key={pin.listingKey}>
+                    <CompMapPin x={pin.x} y={pin.y} size={16} fill="var(--color-accent)" />
+                    {comp && (
+                      <text x={pin.x} y={pin.y + 13} textAnchor="middle" fontSize={8} fill="var(--color-foreground)">
+                        {compactCurrency(comp.adjustedValue)}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+              <CompMapPin x={compMapLayout.subject.x} y={compMapLayout.subject.y} size={24} fill="var(--color-primary)" />
+            </svg>
+            <p className="mt-2 text-center text-xs text-(--color-muted-foreground)">
+              Subject property (navy) and comparable sales (orange) by approximate location
+            </p>
+          </section>
+        )}
+
+        <section className="flex min-w-[280px] flex-1 flex-col justify-center rounded-lg border border-(--color-border) border-t-4 border-t-(--color-primary) bg-(--color-card) p-6">
+          <h2 className="mb-2 text-lg font-semibold text-(--color-foreground)">Value range</h2>
+          <p className="text-2xl font-semibold text-(--color-primary)">
+            {currency(result.valueRange.low)} – {currency(result.valueRange.high)}
+          </p>
+          <p className="text-sm text-(--color-muted-foreground)">
+            Suggested list price: {currency(result.valueRange.suggestedListPrice)}
           </p>
         </section>
-      )}
-
-      <section className="rounded-lg border border-(--color-border) bg-(--color-card) p-6">
-        <h2 className="mb-2 text-lg font-semibold text-(--color-foreground)">Value range</h2>
-        <p className="text-2xl font-semibold text-(--color-primary)">
-          {currency(result.valueRange.low)} – {currency(result.valueRange.high)}
-        </p>
-        <p className="text-sm text-(--color-muted-foreground)">
-          Suggested list price: {currency(result.valueRange.suggestedListPrice)}
-        </p>
-      </section>
+      </div>
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-(--color-foreground)">Comparable sales</h2>
@@ -254,7 +256,7 @@ export function ReportView({
         </section>
       )}
 
-      <section>
+      <section className="border-l-[3px] border-(--color-accent) pl-5">
         <h2 className="mb-2 text-lg font-semibold text-(--color-foreground)">Rationale</h2>
         <p className="text-sm text-(--color-foreground)">{result.rationale}</p>
       </section>
