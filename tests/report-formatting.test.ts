@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { humanizeEnum, layoutCompMap, photoForListing } from "@/lib/report-formatting";
+import { humanizeEnum, layoutCompMap, photoForListing, subjectStatTiles } from "@/lib/report-formatting";
+import type { Subject } from "@/lib/engine/adjustments";
 
 const SUBJECT = { latitude: 47.67, longitude: -122.38 };
 
@@ -70,5 +71,35 @@ describe("humanizeEnum", () => {
   it("breaks a PascalCase enum value into separate words", () => {
     expect(humanizeEnum("SingleFamilyResidence")).toBe("Single Family Residence");
     expect(humanizeEnum("Condominium")).toBe("Condominium");
+  });
+});
+
+describe("subjectStatTiles", () => {
+  const SUBJECT_FULL: Subject = {
+    latitude: 47.67,
+    longitude: -122.38,
+    mlsAreaMajor: "Ballard",
+    propertySubType: "SingleFamilyResidence",
+    bedroomsTotal: 3,
+    bathroomsTotalInteger: 2,
+    livingArea: 2000,
+    lotSizeSquareFeet: 5000,
+    yearBuilt: 2000,
+    garageSpaces: 1,
+    propertyCondition: "Good",
+  };
+
+  it("returns all 9 fields with humanized labels, address and the heading excluded", () => {
+    const tiles = subjectStatTiles(SUBJECT_FULL);
+    expect(tiles).toHaveLength(9);
+    expect(tiles.map((t) => t.label)).not.toContain("Address");
+    expect(tiles).toContainEqual({ label: "Property Type", value: "Single Family Residence" });
+    expect(tiles).toContainEqual({ label: "Lot Size", value: "5,000 sq ft" });
+    expect(tiles).toContainEqual({ label: "Condition", value: "Good" });
+  });
+
+  it("shows 'Not on file' when lotSizeSquareFeet is null", () => {
+    const tiles = subjectStatTiles({ ...SUBJECT_FULL, lotSizeSquareFeet: null });
+    expect(tiles).toContainEqual({ label: "Lot Size", value: "Not on file" });
   });
 });

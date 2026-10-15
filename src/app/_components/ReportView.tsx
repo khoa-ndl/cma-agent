@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import type { Subject } from "@/lib/engine/adjustments";
 import type { ReportBody } from "@/app/api/reports/[id]/logic";
-import { ADJUSTMENT_FACTORS, compactCurrency, currency, layoutCompMap, photoForListing } from "@/lib/report-formatting";
+import {
+  ADJUSTMENT_FACTORS,
+  compactCurrency,
+  currency,
+  layoutCompMap,
+  photoForListing,
+  subjectStatTiles,
+} from "@/lib/report-formatting";
 
 export type { ReportBody };
 
@@ -89,15 +96,21 @@ export function ReportView({
         <h1 className="text-xl font-semibold text-(--color-foreground)">Comparative market analysis</h1>
       </section>
 
-      <section className="rounded-lg border-2 border-(--color-primary) bg-(--color-primary)/5 p-6">
+      <section>
         <p className="mb-1 text-xs font-semibold tracking-wide text-(--color-primary) uppercase">Subject property</p>
-        <h2 className="font-heading text-xl font-bold text-(--color-foreground)">
+        <h2 className="mb-4 font-heading text-xl font-bold text-(--color-foreground)">
           {subject.unparsedAddress ?? subject.mlsAreaMajor}
         </h2>
-        <p className="mt-1 text-sm text-(--color-muted-foreground)">
-          {subject.mlsAreaMajor} · {subject.propertySubType} · {subject.bedroomsTotal} bed /{" "}
-          {subject.bathroomsTotalInteger} bath · {subject.livingArea.toLocaleString()} sq ft
-        </p>
+        <div className="grid grid-cols-3 gap-4">
+          {subjectStatTiles(subject).map((stat) => (
+            <div key={stat.label} className="rounded-lg border border-(--color-border) bg-(--color-card) p-4">
+              <p className="text-xs font-semibold tracking-wide text-(--color-muted-foreground) uppercase">
+                {stat.label}
+              </p>
+              <p className="font-heading text-lg font-bold text-(--color-foreground)">{stat.value}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       {compMapLayout && (

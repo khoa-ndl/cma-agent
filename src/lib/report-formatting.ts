@@ -1,4 +1,5 @@
 import { distanceMiles, type LatLng } from "@/lib/engine/geo";
+import type { Subject } from "@/lib/engine/adjustments";
 
 // Shared between the web results page and the PDF (spec 5 screens 3–4
 // and 5) so a label or the currency format can't drift between the two
@@ -23,6 +24,33 @@ export function currency(n: number): string {
 // until now.
 export function humanizeEnum(value: string): string {
   return value.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
+export interface SubjectStatTile {
+  label: string;
+  value: string;
+}
+
+// Every subject data point for the web results page's Subject Property
+// grid, mirroring the field list already shipped in the PDF's
+// SubjectPropertySection (src/lib/pdf/report-document.tsx) -- minus
+// Address, which the page renders as its own heading above this grid,
+// not as a tile.
+export function subjectStatTiles(subject: Subject): SubjectStatTile[] {
+  return [
+    { label: "Neighborhood / Area", value: subject.mlsAreaMajor },
+    { label: "Property Type", value: humanizeEnum(subject.propertySubType) },
+    { label: "Bedrooms", value: String(subject.bedroomsTotal) },
+    { label: "Bathrooms", value: String(subject.bathroomsTotalInteger) },
+    { label: "Living Area", value: `${subject.livingArea.toLocaleString()} sq ft` },
+    {
+      label: "Lot Size",
+      value: subject.lotSizeSquareFeet ? `${subject.lotSizeSquareFeet.toLocaleString()} sq ft` : "Not on file",
+    },
+    { label: "Year Built", value: String(subject.yearBuilt) },
+    { label: "Garage Spaces", value: String(subject.garageSpaces) },
+    { label: "Condition", value: subject.propertyCondition },
+  ];
 }
 
 // Compact currency for the comp map's pin labels (e.g. "$450K") -- the
